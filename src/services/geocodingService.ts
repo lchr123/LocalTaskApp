@@ -19,7 +19,12 @@ import * as Location from 'expo-location';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+/**
+ * Google Maps API Key - loaded from environment or app config.
+ * For development, set EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file.
+ * NEVER commit real API keys to source control.
+ */
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY';
 const GOOGLE_GEOCODE_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
 
 /**
