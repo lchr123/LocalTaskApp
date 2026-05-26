@@ -38,6 +38,7 @@
     "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "^56.0.12",
+    "dotenv-cli": "^11.0.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
@@ -45,6 +46,9 @@
   },
   "scripts": {
     "start": "expo start",
+    "start:dev": "dotenv -e .env.dev -- expo start -c",
+    "start:staging": "dotenv -e .env.staging -- expo start -c",
+    "start:prod": "dotenv -e .env.production -- expo start -c",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

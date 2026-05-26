@@ -31,7 +31,11 @@ import {
 import * as SecureStore from 'expo-secure-store';
 import { AuthTokens } from '../types/auth';
 import { TOKEN_EXPIRY_MINUTES, DEV_MOCK_AUTH } from '../config/aws-config';
+import { Amplify } from 'aws-amplify';
+import { awsConfig } from '../config/aws-config';
 
+Amplify.configure(awsConfig);
+console.log('AWS config:', awsConfig);
 // ─── Mock Auth Helpers ───────────────────────────────────────────────────────
 
 /**
