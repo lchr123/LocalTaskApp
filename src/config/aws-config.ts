@@ -15,12 +15,12 @@
  * Set to false when connecting to a real Cognito User Pool.
  */
 export const DEV_MOCK_AUTH = false;
-
+import { USER_POOL_ID, USER_POOL_CLIENT_ID } from '@env';
 export const awsConfig = {
   Auth: {
     Cognito: {
-      userPoolId: 'ap-northeast-1_brWaO8vz2',
-      userPoolClientId: '4e419tmsrh82lsmk6dca9qhet0',
+      userPoolId: `${USER_POOL_ID}`,
+      userPoolClientId: `${USER_POOL_CLIENT_ID}`,
       loginWith: {
         email: true,
         phone: true,
