@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, Pressable } from 'react-native';
 import {
   TextInput,
   Button,
@@ -30,6 +30,12 @@ import { createTaskFormSchema, CreateTaskFormData } from '../../utils/validation
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { TaskType } from '../../types/task';
 import LocationPicker, { LocationValue } from './LocationPicker';
+
+// Conditionally import DateTimePicker (not available on web)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +62,8 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
   const theme = useTheme();
   const [typeMenuVisible, setTypeMenuVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
+  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   const {
     control,
@@ -178,7 +186,6 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                 </TouchableRipple>
               }
               anchorPosition="bottom"
-              style={styles.menu}
             >
               {TASK_TYPE_OPTIONS.map((option) => (
                 <Menu.Item
@@ -274,28 +281,94 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
       <Controller
         control={control}
         name="deadline"
-        render={({ field: { onChange, onBlur, value } }) => (
+        render={({ field: { onChange, value } }) => (
           <View style={styles.fieldContainer}>
-            <TextInput
-              label="期望完成时间 *"
-              placeholder="格式：YYYY-MM-DDTHH:mm（如 2025-01-15T14:30）"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              mode="outlined"
-              error={!!errors.deadline}
-              disabled={isLoading}
-              left={<TextInput.Icon icon="clock-outline" />}
-              right={
-                <TextInput.Icon
-                  icon="calendar"
-                  onPress={handleDateSelect}
-                  accessibilityLabel="选择日期时间"
+            {Platform.OS === 'web' ? (
+              <>
+                <Text variant="bodySmall" style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
+                  期望完成时间 *
+                </Text>
+                <input
+                  type="datetime-local"
+                  value={value ? value.slice(0, 16) : ''}
+                  onChange={(e: any) => onChange(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  disabled={isLoading}
+                  style={{
+                    width: '100%',
+                    padding: 16,
+                    fontSize: 16,
+                    borderRadius: 4,
+                    border: errors.deadline
+                      ? `2px solid ${theme.colors.error}`
+                      : `1px solid ${theme.colors.outline}`,
+                    backgroundColor: theme.colors.surface,
+                    color: theme.colors.onSurface,
+                    boxSizing: 'border-box' as any,
+                    height: 56,
+                  }}
+                  aria-label="期望完成时间选择器"
                 />
-              }
-              accessibilityLabel="期望完成时间输入框"
-              accessibilityHint="请输入期望完成时间，必须晚于当前时间"
-            />
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={() => {
+                    if (!isLoading) {
+                      setDatePickerMode('date');
+                      setTempDate(value ? new Date(value) : new Date(Date.now() + 2 * 60 * 60 * 1000));
+                      setShowDatePicker(true);
+                    }
+                  }}
+                  accessibilityLabel="选择期望完成时间"
+                  accessibilityRole="button"
+                >
+                  <TextInput
+                    label="期望完成时间 *"
+                    value={value ? formatDeadlineDisplay(value) : ''}
+                    mode="outlined"
+                    editable={false}
+                    error={!!errors.deadline}
+                    left={<TextInput.Icon icon="clock-outline" />}
+                    right={<TextInput.Icon icon="calendar" />}
+                    pointerEvents="none"
+                    accessibilityLabel="期望完成时间"
+                  />
+                </Pressable>
+                {showDatePicker && DateTimePicker && (
+                  <DateTimePicker
+                    value={tempDate}
+                    mode={datePickerMode}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    minimumDate={new Date()}
+                    onChange={(_event: any, selectedDate?: Date) => {
+                      if (Platform.OS === 'android') {
+                        setShowDatePicker(false);
+                      }
+                      if (!selectedDate) return;
+
+                      if (datePickerMode === 'date') {
+                        // Date selected, now show time picker
+                        setTempDate(selectedDate);
+                        setDatePickerMode('time');
+                        if (Platform.OS === 'android') {
+                          setShowDatePicker(true);
+                        }
+                      } else {
+                        // Time selected, combine and save
+                        setShowDatePicker(false);
+                        const year = selectedDate.getFullYear();
+                        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                        const day = String(selectedDate.getDate()).padStart(2, '0');
+                        const hours = String(selectedDate.getHours()).padStart(2, '0');
+                        const minutes = String(selectedDate.getMinutes()).padStart(2, '0');
+                        onChange(`${year}-${month}-${day}T${hours}:${minutes}`);
+                      }
+                    }}
+                  />
+                )}
+              </>
+            )}
             {errors.deadline ? (
               <HelperText
                 type="error"

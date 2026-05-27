@@ -348,21 +348,43 @@ class AuthService {
       return tokens;
     }
 
-    await signIn({
-      username: identifier,
-      password,
-    });
+    console.log('[AUTH] Calling Cognito signIn with:', identifier);
+    try {
+      // Clear any stale Amplify session before signing in
+      // Use global: true to ensure all cached tokens are purged
+      try {
+        await signOut({ global: true });
+      } catch {
+        // Ignore signOut errors - there may be no session to clear
+      }
+
+      const signInResult = await signIn({
+        username: identifier,
+        password,
+      });
+      console.log('[AUTH] signIn result:', JSON.stringify(signInResult));
+    } catch (signInError) {
+      console.error('[AUTH] signIn error:', signInError);
+      throw signInError;
+    }
 
     // Fetch the session to get tokens
     const session = await fetchAuthSession();
+    console.log('[AUTH] fetchAuthSession result:', JSON.stringify(session));
     const tokens = extractTokensFromSession(session);
+    console.log('[AUTH] extracted tokens:', tokens ? 'success' : 'null');
 
     if (!tokens) {
       throw new Error('Failed to retrieve authentication tokens after login');
     }
 
     // Persist tokens and schedule refresh
-    await persistTokens(tokens);
+    try {
+      await persistTokens(tokens);
+    } catch (persistError) {
+      console.warn('[AUTH] persistTokens failed (expected on web):', persistError);
+      // Don't fail login just because SecureStore isn't available on web
+    }
     scheduleTokenRefresh(tokens.expiresAt);
 
     return tokens;
@@ -456,40 +478,47 @@ class AuthService {
    */
   async getSession(): Promise<AuthTokens | null> {
     try {
-      // Check persisted tokens first
-      const persisted = await loadPersistedTokens();
+      // On web, SecureStore is not available, so skip persisted tokens
+      // and rely on Amplify's built-in localStorage persistence
+      let persisted: AuthTokens | null = null;
+      try {
+        persisted = await loadPersistedTokens();
+      } catch {
+        // SecureStore not available (web) - that's fine, continue
+      }
 
       if (persisted && persisted.expiresAt > Date.now()) {
-        // Token still valid
+        // Token still valid from SecureStore
         return persisted;
       }
 
       if (DEV_MOCK_AUTH) {
-        // In mock mode, if no valid persisted token, return null (user needs to login)
         if (persisted) {
-          await clearPersistedTokens();
+          try { await clearPersistedTokens(); } catch {}
         }
         return null;
       }
 
-      // Token expired or not found - try to get/refresh from Amplify
-      const session = await fetchAuthSession({ forceRefresh: persisted !== null });
+      // Try to get session from Amplify (uses localStorage on web)
+      const session = await fetchAuthSession({ forceRefresh: false });
       const tokens = extractTokensFromSession(session);
 
       if (!tokens) {
-        // No valid session
-        await clearPersistedTokens();
         return null;
       }
 
       // Persist and schedule refresh
-      await persistTokens(tokens);
+      try {
+        await persistTokens(tokens);
+      } catch {
+        // SecureStore not available on web - ignore
+      }
       scheduleTokenRefresh(tokens.expiresAt);
 
       return tokens;
     } catch {
-      // Session invalid - clear everything
-      await clearPersistedTokens();
+      // Session invalid
+      try { await clearPersistedTokens(); } catch {}
       return null;
     }
   }

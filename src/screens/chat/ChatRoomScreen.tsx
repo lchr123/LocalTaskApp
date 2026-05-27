@@ -57,11 +57,17 @@ export default function ChatRoomScreen({ route }: Props) {
   const { sessionId, taskTitle } = route.params;
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  // Store state
-  const messages = useChatStore((state) => state.messages[sessionId] ?? []);
+  // Stable empty references to avoid creating new objects on each render
+  const emptyMessages: ChatMessage[] = React.useMemo(() => [], []);
+  const emptyPagination = React.useMemo(() => ({ page: 1, totalPages: 1 }), []);
+
+  // Store state - use stable references to avoid infinite loops
+  const messages = useChatStore(
+    useCallback((state: any) => state.messages[sessionId] ?? emptyMessages, [sessionId])
+  );
   const isLoadingMessages = useChatStore((state) => state.isLoadingMessages);
   const messagePagination = useChatStore(
-    (state) => state.messagePagination[sessionId]
+    useCallback((state: any) => state.messagePagination[sessionId] ?? emptyPagination, [sessionId])
   );
   const connectionStatus = useChatStore((state) => state.connectionStatus);
   const fetchMessages = useChatStore((state) => state.fetchMessages);

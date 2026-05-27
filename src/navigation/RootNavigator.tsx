@@ -30,9 +30,17 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuthStore();
+  const [isInitializing, setIsInitializing] = React.useState(true);
 
-  // Show loading screen while checking auth state
-  if (isLoading) {
+  // Only show loading screen during initial app startup auth check
+  React.useEffect(() => {
+    if (!isLoading && isInitializing) {
+      setIsInitializing(false);
+    }
+  }, [isLoading, isInitializing]);
+
+  // Show loading screen only during initial auth state check (app startup)
+  if (isInitializing && isLoading) {
     return (
       <View style={styles.loadingContainer} accessibilityLabel="加载中">
         <ActivityIndicator size="large" />

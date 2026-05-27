@@ -13,22 +13,42 @@
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
-import { Text, useTheme, Divider, Button } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Pressable, Alert, Platform } from 'react-native';
+import { Text, useTheme, Divider, Button, TextInput, Portal, Modal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useReviewStore } from '../../stores/reviewStore';
 import { useAuthStore } from '../../stores/authStore';
 import { formatRating } from '../../utils/formatters';
+import apiClient from '../../services/api';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
-  const { user, logout, isLoading } = useAuthStore();
+  const { user, logout, isLoading, setUser } = useAuthStore();
   const { averageRating, totalReviews, fetchUserReviews } = useReviewStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
+  const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+  // Fetch current user's profile on mount and when auth changes
+  const { tokens } = useAuthStore();
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await apiClient.get('/users/me');
+        setUser(res.data);
+      } catch {
+        // Ignore - user may not have profile yet
+      }
+    };
+    if (tokens) {
+      fetchProfile();
+    }
+  }, [setUser, tokens]);
 
   // Fetch current user's reviews on mount
   useEffect(() => {
@@ -36,6 +56,35 @@ export default function ProfileScreen() {
       fetchUserReviews(user.id);
     }
   }, [user?.id, fetchUserReviews]);
+
+  /**
+   * Open nickname edit modal
+   */
+  const handleEditNickname = useCallback(() => {
+    setNewNickname(user?.nickname || '');
+    setNicknameModalVisible(true);
+  }, [user?.nickname]);
+
+  /**
+   * Save new nickname via PATCH /users/me
+   */
+  const handleSaveNickname = useCallback(async () => {
+    const trimmed = newNickname.trim();
+    if (!trimmed || trimmed.length > 50) {
+      Alert.alert('提示', '昵称不能为空且不超过50个字符');
+      return;
+    }
+    setIsSavingNickname(true);
+    try {
+      const res = await apiClient.patch('/users/me', { nickname: trimmed });
+      setUser(res.data);
+      setNicknameModalVisible(false);
+    } catch {
+      Alert.alert('错误', '修改昵称失败，请稍后重试');
+    } finally {
+      setIsSavingNickname(false);
+    }
+  }, [newNickname, setUser]);
 
   /**
    * Navigate to the review list screen.
@@ -58,26 +107,33 @@ export default function ProfileScreen() {
    * - Navigate to login page
    */
   const handleLogout = useCallback(() => {
-    Alert.alert(
-      '确认登出',
-      '确定要退出登录吗？',
-      [
-        { text: '取消', style: 'cancel' },
-        {
-          text: '确定',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoggingOut(true);
-            try {
-              await logout();
-            } finally {
-              setIsLoggingOut(false);
-            }
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('确定要退出登录吗？');
+      if (!confirmed) return;
+      setIsLoggingOut(true);
+      logout().finally(() => setIsLoggingOut(false));
+    } else {
+      Alert.alert(
+        '确认登出',
+        '确定要退出登录吗？',
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '确定',
+            style: 'destructive',
+            onPress: async () => {
+              setIsLoggingOut(true);
+              try {
+                await logout();
+              } finally {
+                setIsLoggingOut(false);
+              }
+            },
           },
-        },
-      ],
-      { cancelable: true }
-    );
+        ],
+        { cancelable: true }
+      );
+    }
   }, [logout]);
 
   return (
@@ -114,6 +170,9 @@ export default function ProfileScreen() {
         >
           {user?.nickname || '用户'}
         </Text>
+        <Pressable onPress={handleEditNickname} accessibilityLabel="修改昵称" accessibilityRole="button">
+          <MaterialCommunityIcons name="pencil" size={18} color={theme.colors.primary} style={{ marginTop: 4 }} />
+        </Pressable>
       </View>
 
       <Divider />
@@ -164,6 +223,33 @@ export default function ProfileScreen() {
       {/* Review List Entry - Requirement 8.5 */}
       <Pressable
         style={styles.menuItem}
+        onPress={() => (navigation as any).navigate('Tasks', { screen: 'MyTasks' })}
+        accessibilityLabel="查看我发布的任务"
+        accessibilityRole="button"
+      >
+        <View style={styles.menuItemLeft}>
+          <MaterialCommunityIcons
+            name="clipboard-text-outline"
+            size={24}
+            color={theme.colors.onSurface}
+          />
+          <Text variant="bodyLarge" style={styles.menuItemText}>
+            我发布的任务
+          </Text>
+        </View>
+        <View style={styles.menuItemRight}>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={theme.colors.outline}
+          />
+        </View>
+      </Pressable>
+
+      <Divider />
+
+      <Pressable
+        style={styles.menuItem}
         onPress={handleViewReviews}
         accessibilityLabel={`查看评价列表，共${totalReviews}条评价`}
         accessibilityRole="button"
@@ -211,6 +297,39 @@ export default function ProfileScreen() {
           退出登录
         </Button>
       </View>
+
+      {/* Nickname Edit Modal */}
+      <Portal>
+        <Modal
+          visible={nicknameModalVisible}
+          onDismiss={() => setNicknameModalVisible(false)}
+          contentContainerStyle={[styles.modalContainer, { backgroundColor: theme.colors.surface }]}
+        >
+          <Text variant="titleMedium" style={{ marginBottom: 16 }}>修改昵称</Text>
+          <TextInput
+            label="昵称"
+            value={newNickname}
+            onChangeText={setNewNickname}
+            mode="outlined"
+            maxLength={50}
+            autoFocus
+            accessibilityLabel="新昵称输入框"
+          />
+          <View style={styles.modalButtons}>
+            <Button onPress={() => setNicknameModalVisible(false)} disabled={isSavingNickname}>
+              取消
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleSaveNickname}
+              loading={isSavingNickname}
+              disabled={isSavingNickname || !newNickname.trim()}
+            >
+              保存
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </ScrollView>
   );
 }
@@ -295,5 +414,16 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     borderRadius: 8,
+  },
+  modalContainer: {
+    margin: 24,
+    padding: 24,
+    borderRadius: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 20,
   },
 });

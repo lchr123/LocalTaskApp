@@ -71,10 +71,7 @@ export default function CreateTaskScreen() {
         // Navigate to task list after a brief delay for user to see the success message
         setTimeout(() => {
           // Navigate to the Tasks tab which shows the task list
-          const parent = navigation.getParent();
-          if (parent) {
-            parent.navigate('Tasks');
-          }
+          navigation.navigate('Tasks' as never);
         }, 1500);
       } catch (error: unknown) {
         const message =

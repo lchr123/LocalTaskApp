@@ -76,16 +76,16 @@ export function useWebSocket(): UseWebSocketReturn {
     // Set up callbacks that bridge WebSocket events to the store
     const callbacks: ChatServiceCallbacks = {
       onMessage: (message: ChatMessage) => {
-        handleIncomingMessage(message);
+        useChatStore.getState().handleIncomingMessage(message);
       },
       onMessageAck: (localId: string, messageId: string) => {
-        handleMessageAck(localId, messageId);
+        useChatStore.getState().handleMessageAck(localId, messageId);
       },
       onMessageError: (localId: string, error: string) => {
-        handleMessageError(localId, error);
+        useChatStore.getState().handleMessageError(localId, error);
       },
       onConnectionStatusChange: (status: ConnectionStatus) => {
-        setConnectionStatus(status);
+        useChatStore.getState().setConnectionStatus(status);
       },
     };
 
@@ -98,14 +98,7 @@ export function useWebSocket(): UseWebSocketReturn {
       chatService.disconnect();
       isSetup.current = false;
     };
-  }, [
-    isAuthenticated,
-    tokens?.accessToken,
-    handleIncomingMessage,
-    handleMessageAck,
-    handleMessageError,
-    setConnectionStatus,
-  ]);
+  }, [isAuthenticated, tokens?.accessToken]);
 
   /**
    * Send a text message via WebSocket.

@@ -18,6 +18,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput as RNTextInput,
+  Alert,
 } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 import { useAuthStore } from '../../stores/authStore';
@@ -52,7 +53,6 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
   const { identifier, method } = route.params;
   const {
     confirmRegistration,
-    login,
     resendVerificationCode,
     isLoading,
     clearError,
@@ -192,19 +192,12 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
       // Confirm registration with Cognito
       await confirmRegistration(identifier, fullCode);
 
-      // Auto-login after successful verification (Requirement 1.4)
-      // Note: We need the password for auto-login, but since Cognito handles
-      // the session after confirmSignUp, we rely on the session being established.
-      // The navigation to Main will be handled by the auth state change.
-      try {
-        // After confirmation, the user is verified but may need to sign in.
-        // In some Cognito configurations, confirmSignUp auto-signs in.
-        // We navigate to Main - the RootNavigator will handle based on auth state.
-        navigation.navigate('Main' as never);
-      } catch {
-        // If auto-login fails, navigate to login screen
-        navigation.navigate('Login');
-      }
+      // Registration complete! Show success message then navigate to Login.
+      Alert.alert(
+        '注册成功 🎉',
+        '账号验证完成，请使用您的邮箱和密码登录。',
+        [{ text: '去登录', onPress: () => navigation.navigate('Login') }]
+      );
     } catch (error: unknown) {
       const newAttempts = errorAttempts + 1;
       setErrorAttempts(newAttempts);

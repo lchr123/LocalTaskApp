@@ -12,7 +12,7 @@
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
-import { View, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, FlatList, StyleSheet, Alert, Platform } from 'react-native';
 import { Snackbar, Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
@@ -50,34 +50,39 @@ export default function IntentListScreen({ route }: Props) {
    */
   const handleSelect = useCallback(
     (intent: Intent) => {
-      Alert.alert(
-        '确认选择',
-        `确定选择 ${intent.helperNickname} 作为帮手吗？选择后任务将进入进行中状态。`,
-        [
-          {
-            text: '取消',
-            style: 'cancel',
-          },
-          {
-            text: '确认',
-            onPress: async () => {
-              setIsSelecting(true);
-              try {
-                await selectHelper(taskId, intent.helperId);
-                setSnackbarMessage(`已选择 ${intent.helperNickname} 为帮手`);
-                setSnackbarVisible(true);
-              } catch {
-                setSnackbarMessage('选择帮手失败，请重试');
-                setSnackbarVisible(true);
-              } finally {
-                setIsSelecting(false);
-              }
-            },
-          },
-        ]
-      );
+      const doSelect = async () => {
+        setIsSelecting(true);
+        try {
+          await selectHelper(taskId, intent.helperId);
+          // Re-fetch intents to show updated statuses
+          await fetchIntents(taskId);
+          setSnackbarMessage(`已选择 ${intent.helperNickname} 为帮手，对话已创建`);
+          setSnackbarVisible(true);
+        } catch {
+          setSnackbarMessage('选择帮手失败，请重试');
+          setSnackbarVisible(true);
+        } finally {
+          setIsSelecting(false);
+        }
+      };
+
+      if (Platform.OS === 'web') {
+        const confirmed = window.confirm(
+          `确定选择 ${intent.helperNickname} 作为帮手吗？选择后任务将进入进行中状态。`
+        );
+        if (confirmed) doSelect();
+      } else {
+        Alert.alert(
+          '确认选择',
+          `确定选择 ${intent.helperNickname} 作为帮手吗？选择后任务将进入进行中状态。`,
+          [
+            { text: '取消', style: 'cancel' },
+            { text: '确认', onPress: doSelect },
+          ]
+        );
+      }
     },
-    [taskId, selectHelper]
+    [taskId, selectHelper, fetchIntents]
   );
 
   const handleRetry = useCallback(async () => {

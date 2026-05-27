@@ -16,6 +16,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TaskListScreen from '../screens/task/TaskListScreen';
 import TaskDetailScreen from '../screens/task/TaskDetailScreen';
 import IntentListScreen from '../screens/task/IntentListScreen';
+import MyTasksScreen from '../screens/task/MyTasksScreen';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -23,6 +24,7 @@ export type TaskStackParamList = {
   TaskList: undefined;
   TaskDetail: { taskId: string };
   IntentList: { taskId: string };
+  MyTasks: undefined;
 };
 
 // ─── Stack Navigator ─────────────────────────────────────────────────────────
@@ -55,6 +57,11 @@ export default function TaskStackNavigator() {
         name="IntentList"
         component={IntentListScreen}
         options={{ title: '意向列表' }}
+      />
+      <Stack.Screen
+        name="MyTasks"
+        component={MyTasksScreen}
+        options={{ title: '我发布的任务' }}
       />
     </Stack.Navigator>
   );

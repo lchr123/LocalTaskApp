@@ -65,13 +65,38 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Load task detail on mount
+  // Load task detail and check if user already submitted intent
   useEffect(() => {
     fetchTaskDetail(taskId);
+    // Check if current user has a pending intent for this task
+    const checkMyIntent = async () => {
+      try {
+        const { default: apiClient } = await import('../../services/api');
+        const res = await apiClient.get(`/tasks/${taskId}/intents/mine`);
+        if (res.data.hasIntent && res.data.intent) {
+          // Add to intents array so hasSubmittedIntent works
+          useTaskStore.setState((state) => ({
+            intents: [{ 
+              id: res.data.intent.id, 
+              taskId, 
+              helperId: user?.id || '', 
+              message: res.data.intent.message,
+              status: 'pending' as const,
+              createdAt: res.data.intent.created_at,
+            }],
+          }));
+        }
+      } catch {
+        // 404 means no intent - that's fine
+      }
+    };
+    if (user?.id) {
+      checkMyIntent();
+    }
     return () => {
       clearCurrentTask();
     };
-  }, [taskId, fetchTaskDetail, clearCurrentTask]);
+  }, [taskId, fetchTaskDetail, clearCurrentTask, user?.id]);
 
   // Check if current user already submitted intent for this task
   const existingIntent = intents.find(
@@ -313,6 +338,18 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
                 {currentTask.intentCount} 人
               </Text>
             </View>
+            {/* Poster can view intent list and select helper */}
+            {currentTask.posterId === user?.id && currentTask.intentCount > 0 && (
+              <Button
+                mode="contained-tonal"
+                onPress={() => (navigation as any).navigate('IntentList', { taskId })}
+                style={{ marginTop: 12 }}
+                icon="account-group"
+                accessibilityLabel="查看意向列表"
+              >
+                查看申请人 ({currentTask.intentCount})
+              </Button>
+            )}
           </Card.Content>
         </Card>
 
