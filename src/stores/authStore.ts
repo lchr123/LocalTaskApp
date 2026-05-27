@@ -132,9 +132,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
      */
     register: async (identifier: string, password: string, method: 'email' | 'phone') => {
       set({ isLoading: true, error: null });
-
+      console.log('3')
       try {
         await authService.register(identifier, password, method);
+        console.log('4')
         set({ isLoading: false });
       } catch (error: unknown) {
         const message =

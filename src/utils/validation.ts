@@ -9,7 +9,7 @@ import { VALIDATION } from './constants';
  * - At least 1 digit
  * - At least 1 special character
  */
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~])/;
+const passwordRegex = /^(?=.*[a-z])(?=.*\d)/;
 
 /**
  * International phone number regex:
@@ -38,7 +38,7 @@ export const registerByPhoneSchema = z.object({
     .min(VALIDATION.PASSWORD_MIN_LENGTH, `密码至少需要${VALIDATION.PASSWORD_MIN_LENGTH}个字符`)
     .regex(
       passwordRegex,
-      '密码必须包含至少1个大写字母、1个小写字母、1个数字和1个特殊字符'
+      '密码必须包含至少1个小写字母、1个数字'
     ),
 });
 
@@ -56,7 +56,7 @@ export const registerByEmailSchema = z.object({
     .min(VALIDATION.PASSWORD_MIN_LENGTH, `密码至少需要${VALIDATION.PASSWORD_MIN_LENGTH}个字符`)
     .regex(
       passwordRegex,
-      '密码必须包含至少1个大写字母、1个小写字母、1个数字和1个特殊字符'
+      '密码必须包含至少1个小写字母、1个数字'
     ),
 });
 
@@ -123,7 +123,7 @@ export const resetPasswordSchema = z.object({
     .min(VALIDATION.PASSWORD_MIN_LENGTH, `密码至少需要${VALIDATION.PASSWORD_MIN_LENGTH}个字符`)
     .regex(
       passwordRegex,
-      '密码必须包含至少1个大写字母、1个小写字母、1个数字和1个特殊字符'
+      '密码必须包含至少1个小写字母、1个数字'
     ),
 });
 

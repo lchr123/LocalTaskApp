@@ -256,7 +256,7 @@ class AuthService {
       console.log(`[MOCK AUTH] Registered: ${identifier} (${method}). Verification code: 123456`);
       return;
     }
-
+    console.log('5')
     const userAttributes: Record<string, string> = {};
 
     if (method === 'email') {

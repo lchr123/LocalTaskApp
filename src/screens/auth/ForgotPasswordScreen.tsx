@@ -58,10 +58,10 @@ interface PasswordRule {
 
 const PASSWORD_RULES: PasswordRule[] = [
   { label: '至少8个字符', test: (v) => v.length >= 8 },
-  { label: '至少1个大写字母', test: (v) => /[A-Z]/.test(v) },
+  // { label: '至少1个大写字母', test: (v) => /[A-Z]/.test(v) },
   { label: '至少1个小写字母', test: (v) => /[a-z]/.test(v) },
   { label: '至少1个数字', test: (v) => /\d/.test(v) },
-  { label: '至少1个特殊字符', test: (v) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(v) },
+  // { label: '至少1个特殊字符', test: (v) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(v) },
 ];
 
 // ─── Error Message Mapping ───────────────────────────────────────────────────
@@ -578,7 +578,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
                 />
               }
               accessibilityLabel="新密码输入框"
-              accessibilityHint="密码需至少8个字符，包含大小写字母、数字和特殊字符"
+              accessibilityHint="密码需至少8个字符，包含小写字母、数字"
             />
             <HelperText type="error" visible={!!passwordForm.formState.errors.newPassword}>
               {passwordForm.formState.errors.newPassword?.message}
