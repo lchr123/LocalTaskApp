@@ -21,21 +21,33 @@ import { useReviewStore } from '../../stores/reviewStore';
 import { useAuthStore } from '../../stores/authStore';
 import { formatRating } from '../../utils/formatters';
 import apiClient from '../../services/api';
+import { navigateToAuth, resetToMain } from '../../navigation/navigationRef';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
-  const { user, logout, isLoading, setUser } = useAuthStore();
+  const { user, logout, isLoading, setUser, isAuthenticated, tokens } = useAuthStore();
   const { averageRating, totalReviews, fetchUserReviews } = useReviewStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [nicknameModalVisible, setNicknameModalVisible] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [isSavingNickname, setIsSavingNickname] = useState(false);
 
-  // Fetch current user's profile on mount and when auth changes
-  const { tokens } = useAuthStore();
+  const isLoggedIn = isAuthenticated && !!tokens;
+  const requireLogin = useCallback(
+    (action: () => void) => {
+      if (!isLoggedIn) {
+        navigateToAuth();
+        return;
+      }
+
+      action();
+    },
+    [isLoggedIn]
+  );
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -125,6 +137,7 @@ export default function ProfileScreen() {
               setIsLoggingOut(true);
               try {
                 await logout();
+                resetToMain();
               } finally {
                 setIsLoggingOut(false);
               }
@@ -145,34 +158,54 @@ export default function ProfileScreen() {
       {/* User Info Section */}
       <View style={styles.userSection} accessibilityLabel="用户信息">
         <View style={styles.avatarContainer}>
-          {user?.avatarUrl ? (
-            <View style={styles.avatarPlaceholder}>
-              <MaterialCommunityIcons
-                name="account-circle"
-                size={72}
-                color={theme.colors.primary}
-              />
-            </View>
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <MaterialCommunityIcons
-                name="account-circle"
-                size={72}
-                color={theme.colors.outline}
-              />
-            </View>
-          )}
+          <View style={styles.avatarPlaceholder}>
+            <MaterialCommunityIcons
+              name="account-circle"
+              size={72}
+              color={isLoggedIn ? theme.colors.primary : theme.colors.outline}
+            />
+          </View>
         </View>
         <Text
           variant="headlineSmall"
           style={styles.nickname}
-          accessibilityLabel={`昵称：${user?.nickname || '用户'}`}
+          accessibilityLabel={isLoggedIn ? `昵称：${user?.nickname || '用户'}` : '未登录'}
         >
-          {user?.nickname || '用户'}
+          {isLoggedIn ? user?.nickname || '用户' : '未登录'}
         </Text>
-        <Pressable onPress={handleEditNickname} accessibilityLabel="修改昵称" accessibilityRole="button">
-          <MaterialCommunityIcons name="pencil" size={18} color={theme.colors.primary} style={{ marginTop: 4 }} />
-        </Pressable>
+        {isLoggedIn ? (
+          <Pressable
+            onPress={handleEditNickname}
+            accessibilityLabel="修改昵称"
+            accessibilityRole="button"
+          >
+            <MaterialCommunityIcons
+              name="pencil"
+              size={18}
+              color={theme.colors.primary}
+              style={{ marginTop: 4 }}
+            />
+          </Pressable>
+        ) : (
+          <>
+            <Text
+              variant="bodyMedium"
+              style={[styles.guestHint, { color: theme.colors.outline }]}
+            >
+              登录后可以发布任务、聊天、管理任务和查看评价
+            </Text>
+
+            <Button
+              mode="contained"
+              icon="login"
+              onPress={navigateToAuth}
+              style={styles.loginButton}
+              contentStyle={styles.loginButtonContent}
+            >
+              登录 / 注册
+            </Button>
+          </>
+        )}
       </View>
 
       <Divider />
@@ -223,7 +256,11 @@ export default function ProfileScreen() {
       {/* Review List Entry - Requirement 8.5 */}
       <Pressable
         style={styles.menuItem}
-        onPress={() => (navigation as any).navigate('Tasks', { screen: 'MyTasks' })}
+        onPress={() =>
+          requireLogin(() => {
+            (navigation as any).navigate('Tasks', { screen: 'MyTasks' });
+          })
+        }
         accessibilityLabel="查看我发布的任务"
         accessibilityRole="button"
       >
@@ -238,6 +275,14 @@ export default function ProfileScreen() {
           </Text>
         </View>
         <View style={styles.menuItemRight}>
+          {!isLoggedIn && (
+            <Text
+              variant="bodySmall"
+              style={[styles.menuItemBadge, { color: theme.colors.outline }]}
+            >
+              登录后可用
+            </Text>
+          )}
           <MaterialCommunityIcons
             name="chevron-right"
             size={24}
@@ -251,7 +296,9 @@ export default function ProfileScreen() {
       <Pressable
         style={styles.menuItem}
         onPress={handleViewReviews}
-        accessibilityLabel={`查看评价列表，共${totalReviews}条评价`}
+        accessibilityLabel={
+          isLoggedIn ? `查看评价列表，共${totalReviews}条评价` : '登录后查看评价列表'
+        }
         accessibilityRole="button"
       >
         <View style={styles.menuItemLeft}>
@@ -269,7 +316,7 @@ export default function ProfileScreen() {
             variant="bodySmall"
             style={[styles.menuItemBadge, { color: theme.colors.outline }]}
           >
-            {totalReviews} 条
+            {isLoggedIn ? `${totalReviews} 条` : '登录后可用'}
           </Text>
           <MaterialCommunityIcons
             name="chevron-right"
@@ -282,21 +329,23 @@ export default function ProfileScreen() {
       <Divider />
 
       {/* Logout Button - Requirements 3.1, 3.2, 3.3 */}
-      <View style={styles.logoutSection}>
-        <Button
-          mode="outlined"
-          onPress={handleLogout}
-          loading={isLoggingOut || isLoading}
-          disabled={isLoggingOut || isLoading}
-          icon="logout"
-          textColor={theme.colors.error}
-          style={[styles.logoutButton, { borderColor: theme.colors.error }]}
-          accessibilityLabel="退出登录"
-          accessibilityRole="button"
-        >
-          退出登录
-        </Button>
-      </View>
+      {isLoggedIn && (
+        <View style={styles.logoutSection}>
+          <Button
+            mode="outlined"
+            onPress={handleLogout}
+            loading={isLoggingOut || isLoading}
+            disabled={isLoggingOut || isLoading}
+            icon="logout"
+            textColor={theme.colors.error}
+            style={[styles.logoutButton, { borderColor: theme.colors.error }]}
+            accessibilityLabel="退出登录"
+            accessibilityRole="button"
+          >
+            退出登录
+          </Button>
+        </View>
+      )}
 
       {/* Nickname Edit Modal */}
       <Portal>
@@ -425,5 +474,29 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 12,
     marginTop: 20,
+  },
+  guestHint: {
+    marginTop: 8,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 24,
+  },
+  loginButton: {
+    marginTop: 20,
+    borderRadius: 8,
+    minWidth: 180,
+  },
+  loginButtonContent: {
+    paddingVertical: 6,
+  },
+  guestFeatureSection: {
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  guestFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
   },
 });

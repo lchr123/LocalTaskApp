@@ -40,3 +40,13 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# helper md
+command.md
+
+# pem key file
+*.pem
+
+docker-compose.yml
+dockerfile
+nginx.conf

@@ -115,7 +115,7 @@ class ChatService {
     const wsProtocol = __DEV__ ? 'ws' : 'wss';
     const wsHost = __DEV__
       ? (Platform.OS === 'android' ? '10.0.2.2' : 'localhost') + ':3000'
-      : 'api.localtask.example.com/v1';
+      : 'locallyhelper.com/api';
     const baseUrl = `${wsProtocol}://${wsHost}`;
     const wsUrl = `${baseUrl}${wsBaseUrl}?token=${encodeURIComponent(token)}`;
 

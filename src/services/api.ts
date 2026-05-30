@@ -30,7 +30,7 @@ import { Platform } from 'react-native';
 const DEV_API_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 const API_BASE_URL = __DEV__
   ? `http://${DEV_API_HOST}:3000`
-  : 'https://api.localtask.example.com/v1';
+  : 'https://locallyhelper.com/api';
 
 /**
  * Flag to prevent multiple simultaneous token refresh attempts
@@ -120,7 +120,7 @@ const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: TIMEOUTS.API_REQUEST,
   headers: {
-    'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
 });
 
@@ -134,10 +134,9 @@ const apiClient: AxiosInstance = axios.create({
  */
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    if (DEV_MOCK_AUTH) {
-      // In mock mode, send a dummy token — backend with MOCK_AUTH=true will skip verification
-      config.headers.Authorization = 'Bearer dev-mock-token';
-      return config;
+    if (config.data instanceof FormData) {
+      delete (config.headers as any)['Content-Type'];
+      delete (config.headers as any)['content-type'];
     }
     const token = await getAccessToken();
     if (token) {

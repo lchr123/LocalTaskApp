@@ -29,6 +29,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useTaskStore } from '../../stores/taskStore';
 import TaskForm from '../../components/task/TaskForm';
 import { CreateTaskFormData } from '../../utils/validation';
+import { useAuthStore } from '../../stores/authStore';
+import AuthRequired from '../../components/auth/AuthRequired';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -39,6 +41,9 @@ export default function CreateTaskScreen() {
 
   const [successVisible, setSuccessVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const { isAuthenticated, tokens } = useAuthStore();
+  const isLoggedIn = isAuthenticated && !!tokens;
 
   /**
    * Handle form submission.
@@ -81,6 +86,16 @@ export default function CreateTaskScreen() {
     },
     [createTask, navigation]
   );
+
+  if (!isLoggedIn) {
+    return (
+      <AuthRequired
+        icon="plus-circle-outline"
+        title="登录后可以发布任务"
+        description="登录或注册后，您可以发布跑腿、遛狗、取送物品等本地任务。"
+      />
+    );
+  }
 
   return (
     <KeyboardAvoidingView

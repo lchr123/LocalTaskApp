@@ -48,7 +48,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "expo start -c",
     "start:dev": "dotenv -e .env.dev -- expo start -c",
     "start:staging": "dotenv -e .env.staging -- expo start -c",
     "start:prod": "dotenv -e .env.production -- expo start -c",
@@ -56,7 +56,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "build:web": "expo export -p web"
   },
   "private": true
 }

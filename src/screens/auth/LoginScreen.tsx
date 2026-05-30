@@ -31,6 +31,7 @@ import {
 } from '../../utils/validation';
 import { VALIDATION } from '../../utils/constants';
 import { DEV_MOCK_AUTH } from '../../config/aws-config';
+import { resetToMain } from '../../navigation/navigationRef';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -144,6 +145,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       try {
         await login(identifier, password);
         failureCountRef.current = 0;
+        resetToMain();
       } catch (error: unknown) {
         failureCountRef.current += 1;
 

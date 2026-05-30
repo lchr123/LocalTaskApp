@@ -28,6 +28,7 @@ import {
   fetchAuthSession,
   resendSignUpCode,
 } from 'aws-amplify/auth';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { AuthTokens } from '../types/auth';
 import { TOKEN_EXPIRY_MINUTES, DEV_MOCK_AUTH } from '../config/aws-config';
@@ -103,10 +104,10 @@ export function setAuthEventListeners(listeners: {
  */
 async function persistTokens(tokens: AuthTokens): Promise<void> {
   await Promise.all([
-    SecureStore.setItemAsync(SECURE_STORE_KEYS.ACCESS_TOKEN, tokens.accessToken),
-    SecureStore.setItemAsync(SECURE_STORE_KEYS.REFRESH_TOKEN, tokens.refreshToken),
-    SecureStore.setItemAsync(SECURE_STORE_KEYS.ID_TOKEN, tokens.idToken),
-    SecureStore.setItemAsync(SECURE_STORE_KEYS.EXPIRES_AT, String(tokens.expiresAt)),
+    setStorageItem(SECURE_STORE_KEYS.ACCESS_TOKEN, tokens.accessToken),
+    setStorageItem(SECURE_STORE_KEYS.REFRESH_TOKEN, tokens.refreshToken),
+    setStorageItem(SECURE_STORE_KEYS.ID_TOKEN, tokens.idToken),
+    setStorageItem(SECURE_STORE_KEYS.EXPIRES_AT, String(tokens.expiresAt)),
   ]);
 }
 
@@ -116,10 +117,10 @@ async function persistTokens(tokens: AuthTokens): Promise<void> {
 async function loadPersistedTokens(): Promise<AuthTokens | null> {
   try {
     const [accessToken, refreshToken, idToken, expiresAtStr] = await Promise.all([
-      SecureStore.getItemAsync(SECURE_STORE_KEYS.ACCESS_TOKEN),
-      SecureStore.getItemAsync(SECURE_STORE_KEYS.REFRESH_TOKEN),
-      SecureStore.getItemAsync(SECURE_STORE_KEYS.ID_TOKEN),
-      SecureStore.getItemAsync(SECURE_STORE_KEYS.EXPIRES_AT),
+      getStorageItem(SECURE_STORE_KEYS.ACCESS_TOKEN),
+      getStorageItem(SECURE_STORE_KEYS.REFRESH_TOKEN),
+      getStorageItem(SECURE_STORE_KEYS.ID_TOKEN),
+      getStorageItem(SECURE_STORE_KEYS.EXPIRES_AT),
     ]);
 
     if (!accessToken || !refreshToken || !idToken || !expiresAtStr) {
@@ -142,10 +143,10 @@ async function loadPersistedTokens(): Promise<AuthTokens | null> {
  */
 async function clearPersistedTokens(): Promise<void> {
   await Promise.all([
-    SecureStore.deleteItemAsync(SECURE_STORE_KEYS.ACCESS_TOKEN),
-    SecureStore.deleteItemAsync(SECURE_STORE_KEYS.REFRESH_TOKEN),
-    SecureStore.deleteItemAsync(SECURE_STORE_KEYS.ID_TOKEN),
-    SecureStore.deleteItemAsync(SECURE_STORE_KEYS.EXPIRES_AT),
+    deleteStorageItem(SECURE_STORE_KEYS.ACCESS_TOKEN),
+    deleteStorageItem(SECURE_STORE_KEYS.REFRESH_TOKEN),
+    deleteStorageItem(SECURE_STORE_KEYS.ID_TOKEN),
+    deleteStorageItem(SECURE_STORE_KEYS.EXPIRES_AT),
   ]);
 }
 
@@ -231,6 +232,32 @@ async function refreshSession(): Promise<AuthTokens | null> {
     onSessionInvalid?.();
     return null;
   }
+}
+
+async function setStorageItem(key: string, value: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    window.localStorage.setItem(key, value);
+    return;
+  }
+
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function getStorageItem(key: string): Promise<string | null> {
+  if (Platform.OS === 'web') {
+    return window.localStorage.getItem(key);
+  }
+
+  return SecureStore.getItemAsync(key);
+}
+
+async function deleteStorageItem(key: string): Promise<void> {
+  if (Platform.OS === 'web') {
+    window.localStorage.removeItem(key);
+    return;
+  }
+
+  await SecureStore.deleteItemAsync(key);
 }
 
 /**

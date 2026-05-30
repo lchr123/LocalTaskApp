@@ -39,6 +39,7 @@ import { ChatMessage } from '../../types/chat';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { ChatInput } from '../../components/chat/ChatInput';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import { uploadService } from '../../services/uploadService';
 
 type Props = NativeStackScreenProps<ChatStackParamList, 'ChatRoom'>;
 
@@ -144,7 +145,7 @@ export default function ChatRoomScreen({ route }: Props) {
    * Requirement 7.8: Optimistic UI with status management
    */
   const handleSendImage = useCallback(
-    (imageUri: string) => {
+    async (imageUri: string) => {
       const localId = generateLocalId();
       const optimisticMessage: ChatMessage = {
         id: localId,
@@ -158,7 +159,18 @@ export default function ChatRoomScreen({ route }: Props) {
       };
 
       addOptimisticMessage(sessionId, optimisticMessage);
-      sendImageMessage(sessionId, imageUri, localId);
+      try {
+        const remoteUrl = await uploadService.uploadImage({
+          uri: imageUri,
+          fileName: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`,
+          mimeType: 'image/jpeg',
+        });
+
+        // 真正发给 websocket / 后端保存的是 S3 URL
+        sendImageMessage(sessionId, remoteUrl, localId);
+      } catch (error) {
+        console.error('[ChatRoom] upload image failed:', error);
+      }
     },
     [sessionId, currentUserId, addOptimisticMessage, sendImageMessage]
   );

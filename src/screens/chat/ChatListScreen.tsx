@@ -21,6 +21,8 @@ import { ChatSession } from '../../types/chat';
 import { ChatStackParamList } from '../../navigation/ChatStackNavigator';
 import { ChatSessionCard } from '../../components/chat/ChatSessionCard';
 import { LoadingIndicator, ErrorRetry, EmptyState } from '../../components/common';
+import { useAuthStore } from '../../stores/authStore';
+import AuthRequired from '../../components/auth/AuthRequired';
 
 type ChatListNavigationProp = NativeStackNavigationProp<
   ChatStackParamList,
@@ -42,11 +44,15 @@ export default function ChatListScreen() {
   } = useChatStore();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isAuthenticated, tokens } = useAuthStore();
+  const isLoggedIn = isAuthenticated && !!tokens;
 
   // Fetch sessions on mount
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    if (isLoggedIn) {
+      fetchSessions();
+    }
+  }, [isLoggedIn, fetchSessions]);
 
   /**
    * Handle pull-to-refresh
@@ -106,6 +112,24 @@ export default function ChatListScreen() {
       new Date(a.lastMessageTime).getTime()
     );
   });
+
+  if (!isLoggedIn) {
+    return (
+      <View style={styles.container} accessibilityLabel="消息页面未登录">
+        <View style={styles.header}>
+          <Text style={styles.headerTitle} accessibilityLabel="消息页面标题">
+            消息
+          </Text>
+        </View>
+
+        <AuthRequired
+          icon="chat-outline"
+          title="登录后可以查看消息"
+          description="登录或注册后，您可以查看聊天会话，并与任务相关用户沟通。"
+        />
+      </View>
+    );
+  }
 
   // Show loading state on initial load
   if (isLoadingSessions && sessions.length === 0) {

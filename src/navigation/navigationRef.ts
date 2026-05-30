@@ -25,9 +25,15 @@ export const navigationRef = createNavigationContainerRef<RootStackParamList>();
  */
 export function navigateToAuth(): void {
   if (navigationRef.isReady()) {
+    navigationRef.navigate('Auth');
+  }
+}
+
+export function resetToMain(): void {
+  if (navigationRef.isReady()) {
     navigationRef.resetRoot({
       index: 0,
-      routes: [{ name: 'Auth' }],
+      routes: [{ name: 'Main' }],
     });
   }
 }
