@@ -21,11 +21,11 @@ import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import HomeScreen from '../screens/HomeScreen';
 import CreateTaskScreen from '../screens/task/CreateTaskScreen';
-import ProfileScreen from '../screens/profile/ProfileScreen';
+import HomeStackNavigator from './HomeStackNavigator';
 import TaskStackNavigator from './TaskStackNavigator';
 import ChatStackNavigator from './ChatStackNavigator';
+import ProfileStackNavigator from './ProfileStackNavigator';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -89,7 +89,7 @@ export default function MainTabNavigator() {
     >
       <Tab.Screen
         name="Home"
-        component={HomeScreen}
+        component={HomeStackNavigator}
         options={{
           tabBarLabel: '首页',
           tabBarAccessibilityLabel: '首页',
@@ -121,7 +121,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileStackNavigator}
         options={{
           tabBarLabel: '我的',
           tabBarAccessibilityLabel: '个人中心',

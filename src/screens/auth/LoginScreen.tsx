@@ -272,6 +272,9 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
                     accessibilityLabel="手机号输入框"
                     accessibilityHint="请输入注册时使用的手机号"
                   />
+                  <Text variant="bodySmall" style={{ color: '#757575', marginTop: 4 }}>
+                    日本号码格式：+81 + 10位数字（去掉开头的0）
+                  </Text>
                   {phoneForm.formState.errors.phone && (
                     <Text
                       variant="bodySmall"
@@ -447,6 +450,18 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             去注册
           </Button>
         </View>
+
+        {/* Back to Main (browse without login) */}
+        <Button
+          mode="text"
+          onPress={() => (navigation as any).navigate('Main')}
+          compact
+          icon="arrow-left"
+          style={{ marginTop: 8 }}
+          accessibilityLabel="返回首页"
+        >
+          先逛逛
+        </Button>
 
         {/* DEV MODE: Quick Login Button */}
         {DEV_MOCK_AUTH && (

@@ -90,19 +90,24 @@ async function refreshAccessToken(): Promise<string | null> {
 
 /**
  * Handle authentication failure: clear local state and navigate to login.
- * Implements Requirement 2.7: clear local auth state and redirect to login.
- * Syncs with Zustand auth store to ensure UI state is consistent.
+ * Only navigates to Auth if user was previously authenticated.
  */
 async function handleAuthFailure(): Promise<void> {
+  const { getState } = useAuthStore;
+  const wasAuthenticated = getState().isAuthenticated;
+
+  // If user was never logged in, just silently reject - don't redirect
+  if (!wasAuthenticated) {
+    return;
+  }
+
   try {
     await signOut();
   } catch {
-    // Even if signOut fails, we still navigate to auth
-    // per Requirement 3.3 (network error during logout)
+    // Even if signOut fails, we still clear state
   }
 
-  // Clear Zustand auth store state so RootNavigator switches to Auth screen
-  const { getState } = useAuthStore;
+  // Clear Zustand auth store state
   getState().setUser(null);
   useAuthStore.setState({
     tokens: null,
@@ -167,6 +172,12 @@ apiClient.interceptors.response.use(
 
     // Only handle 401 errors with a valid original request
     if (error.response?.status !== 401 || !originalRequest) {
+      return Promise.reject(error);
+    }
+
+    // If the request didn't have an Authorization header, user is not logged in
+    // 401 is expected - just reject silently without triggering auth failure
+    if (!originalRequest.headers?.Authorization) {
       return Promise.reject(error);
     }
 

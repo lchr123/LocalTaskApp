@@ -29,10 +29,10 @@ import { TaskCard } from '../../components/task/TaskCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorRetry } from '../../components/common/ErrorRetry';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
-import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
+import { HomeStackParamList } from '../../navigation/HomeStackNavigator';
 import { PAGINATION } from '../../utils/constants';
 
-type TaskListNavigationProp = NativeStackNavigationProp<TaskStackParamList, 'TaskList'>;
+type TaskListNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'TaskList'>;
 
 /**
  * TaskListScreen renders the main task browsing interface.

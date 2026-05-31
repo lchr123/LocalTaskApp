@@ -73,14 +73,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set({ tokens });
     },
     onSessionInvalid: () => {
-      // Clear state and redirect when session becomes invalid (Requirement 2.7)
+      // Only redirect if user was previously authenticated
+      const wasAuthenticated = get().isAuthenticated;
       set({
         user: null,
         tokens: null,
         isAuthenticated: false,
         error: null,
       });
-      navigateToAuth();
+      if (wasAuthenticated) {
+        navigateToAuth();
+      }
     },
   });
 
@@ -104,11 +107,24 @@ export const useAuthStore = create<AuthState>((set, get) => {
         const tokens = await authService.initialize();
 
         if (tokens) {
-          set({
-            tokens,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+          // Validate token by calling /users/me
+          try {
+            const { default: apiClient } = await import('../services/api');
+            const res = await apiClient.get('/users/me');
+            set({
+              tokens,
+              isAuthenticated: true,
+              isLoading: false,
+              user: res.data,
+            });
+          } catch {
+            // Token is invalid, clear state
+            set({
+              tokens: null,
+              isAuthenticated: false,
+              isLoading: false,
+            });
+          }
         } else {
           set({
             tokens: null,

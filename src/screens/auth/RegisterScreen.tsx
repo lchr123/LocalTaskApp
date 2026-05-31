@@ -29,6 +29,7 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuthStore } from '../../stores/authStore';
+import { authService } from '../../services/authService';
 import {
   registerByPhoneSchema,
   registerByEmailSchema,
@@ -94,6 +95,20 @@ function mapRegistrationError(error: unknown): string {
   return error.message || '注册失败，请稍后重试';
 }
 
+/**
+ * Check if the error indicates the user already exists in Cognito.
+ */
+function isUserExistsError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  const name = (error as any).name?.toLowerCase() || '';
+  return msg.includes('user already exists') 
+    || msg.includes('usernameexists')
+    || name.includes('usernameexists')
+    || msg.includes('already exists')
+    || msg.includes('an account with the given');
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function RegisterScreen({ navigation }: RegisterScreenProps) {
@@ -110,6 +125,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     defaultValues: {
       phone: '+81',
       password: '',
+      confirmPassword: '',
     },
     mode: 'onChange',
   });
@@ -120,6 +136,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
     defaultValues: {
       email: '',
       password: '',
+      confirmPassword: '',
     },
     mode: 'onChange',
   });
@@ -148,7 +165,19 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
         await registerUser(data.phone, data.password, 'phone');
         navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone' });
       } catch (error: unknown) {
-        setServerError(mapRegistrationError(error));
+        // Check if user already exists - try to resend verification code
+        if (isUserExistsError(error)) {
+          try {
+            await authService.resendVerificationCode(data.phone);
+            // Resend succeeded - navigate to verify page regardless of user state
+            // If user is already verified, they'll get an error when entering the code
+            navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone' });
+          } catch {
+            setServerError('该账号已注册，请直接登录');
+          }
+        } else {
+          setServerError(mapRegistrationError(error));
+        }
       }
     },
     [registerUser, navigation, clearError]
@@ -163,14 +192,20 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
       clearError();
 
       try {
-        console.log('0')
         await registerUser(data.email, data.password, 'email');
-        console.log('1')
         navigation.navigate('VerifyCode', { identifier: data.email, method: 'email' });
-        console.log('2')
       } catch (error: unknown) {
-        console.log(error)
-        setServerError(mapRegistrationError(error));
+        // Check if user already exists - try to resend verification code
+        if (isUserExistsError(error)) {
+          try {
+            await authService.resendVerificationCode(data.email);
+            navigation.navigate('VerifyCode', { identifier: data.email, method: 'email' });
+          } catch {
+            setServerError('该账号已注册，请直接登录');
+          }
+        } else {
+          setServerError(mapRegistrationError(error));
+        }
       }
     },
     [registerUser, navigation, clearError]
@@ -289,6 +324,32 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
                 </View>
               )}
             />
+
+            <Controller
+              control={phoneForm.control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    label="确认密码"
+                    placeholder="请再次输入密码"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    mode="outlined"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoComplete="password-new"
+                    error={!!phoneForm.formState.errors.confirmPassword}
+                    left={<TextInput.Icon icon="lock-check" />}
+                    accessibilityLabel="确认密码输入框"
+                  />
+                  <HelperText type="error" visible={!!phoneForm.formState.errors.confirmPassword}>
+                    {phoneForm.formState.errors.confirmPassword?.message}
+                  </HelperText>
+                </View>
+              )}
+            />
           </>
         )}
 
@@ -350,6 +411,32 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
                   />
                   <HelperText type="error" visible={!!emailForm.formState.errors.password}>
                     {emailForm.formState.errors.password?.message}
+                  </HelperText>
+                </View>
+              )}
+            />
+
+            <Controller
+              control={emailForm.control}
+              name="confirmPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <View style={styles.fieldContainer}>
+                  <TextInput
+                    label="确认密码"
+                    placeholder="请再次输入密码"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    mode="outlined"
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                    autoComplete="password-new"
+                    error={!!emailForm.formState.errors.confirmPassword}
+                    left={<TextInput.Icon icon="lock-check" />}
+                    accessibilityLabel="确认密码输入框"
+                  />
+                  <HelperText type="error" visible={!!emailForm.formState.errors.confirmPassword}>
+                    {emailForm.formState.errors.confirmPassword?.message}
                   </HelperText>
                 </View>
               )}

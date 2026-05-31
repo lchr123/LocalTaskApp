@@ -5,14 +5,15 @@
  * Allows navigation to task detail for managing intents and selecting helpers.
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Platform } from 'react-native';
 import { Text, Card, Chip, Button, useTheme, ActivityIndicator } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import apiClient from '../../services/api';
 import { formatReward, formatRelativeTime } from '../../utils/formatters';
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { Task } from '../../types/task';
+import { useTaskStore } from '../../stores/taskStore';
 
 function getStatusLabel(status: string): string {
   switch (status) {
@@ -37,6 +38,7 @@ function getStatusColor(status: string): string {
 export default function MyTasksScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
+  const { refresh: refreshTaskList } = useTaskStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -54,9 +56,11 @@ export default function MyTasksScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMyTasks();
-  }, [fetchMyTasks]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyTasks();
+    }, [fetchMyTasks])
+  );
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -64,21 +68,22 @@ export default function MyTasksScreen() {
   }, [fetchMyTasks]);
 
   const handleTaskPress = useCallback((taskId: string) => {
-    (navigation as any).navigate('Tasks', {
-      screen: 'TaskDetail',
-      params: { taskId },
-    });
+    (navigation as any).navigate('TaskDetail', { taskId });
   }, [navigation]);
 
-  const handleStatusChange = useCallback(async (taskId: string, newStatus: string, label: string) => {
-    const confirmMsg = `确定要将任务标记为「${label}」吗？`;
-    if (Platform.OS === 'web') {
-      if (!window.confirm(confirmMsg)) return;
+  const handleStatusChange = useCallback(async (taskId: string, newStatus: string, label: string, skipConfirm = false) => {
+    if (!skipConfirm) {
+      const confirmMsg = `确定要将任务标记为「${label}」吗？`;
+      if (Platform.OS === 'web') {
+        if (!window.confirm(confirmMsg)) return;
+      }
     }
     setUpdatingTaskId(taskId);
     try {
       await apiClient.patch(`/tasks/${taskId}/status`, { status: newStatus });
       await fetchMyTasks();
+      // Also refresh the home page task list
+      refreshTaskList();
     } catch {
       if (Platform.OS === 'web') {
         window.alert('操作失败，请重试');
@@ -147,6 +152,20 @@ export default function MyTasksScreen() {
 
             {/* Status action buttons */}
             <View style={styles.actionRow}>
+              {item.status === 'open' && (
+                <Button
+                  mode="outlined"
+                  compact
+                  onPress={() => handleStatusChange(item.id, 'cancelled', '已取消')}
+                  loading={updatingTaskId === item.id}
+                  disabled={updatingTaskId === item.id}
+                  icon="close"
+                  style={styles.actionButton}
+                  textColor="#f44336"
+                >
+                  取消任务
+                </Button>
+              )}
               {item.status === 'in_progress' && (
                 <>
                   <Button
@@ -164,28 +183,77 @@ export default function MyTasksScreen() {
                   <Button
                     mode="outlined"
                     compact
+                    onPress={() => {
+                      const msg = '取消与当前接单人的匹配后，任务状态将回滚至「待接单」，重新出现在任务大厅。确定继续吗？';
+                      if (Platform.OS === 'web') {
+                        if (!window.confirm(msg)) return;
+                      }
+                      handleStatusChange(item.id, 'open', '待接单', true);
+                    }}
+                    disabled={updatingTaskId === item.id}
+                    icon="account-remove"
+                    style={styles.actionButton}
+                    textColor="#ff9800"
+                  >
+                    取消匹配
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    compact
                     onPress={() => handleStatusChange(item.id, 'cancelled', '已取消')}
                     disabled={updatingTaskId === item.id}
                     icon="close"
                     style={styles.actionButton}
                     textColor="#f44336"
                   >
-                    取消
+                    取消任务
                   </Button>
                 </>
               )}
-              {item.status === 'completed' && (
-                <Button
-                  mode="outlined"
-                  compact
-                  onPress={() => handleStatusChange(item.id, 'in_progress', '进行中')}
-                  loading={updatingTaskId === item.id}
-                  disabled={updatingTaskId === item.id}
-                  icon="undo"
-                  style={styles.actionButton}
-                >
-                  重新进行
-                </Button>
+              {item.status === 'completed' && !item.hasReview && (
+                <>
+                  <Button
+                    mode="contained"
+                    compact
+                    onPress={async () => {
+                      if (item.selectedHelperId) {
+                        let helperNickname = '帮手';
+                        try {
+                          const res = await apiClient.get(`/users/${item.selectedHelperId}`);
+                          helperNickname = res.data.nickname || '帮手';
+                        } catch {}
+                        (navigation as any).navigate('CreateReview', {
+                          taskId: item.id,
+                          revieweeId: item.selectedHelperId,
+                          revieweeNickname: helperNickname,
+                          completedAt: item.updatedAt || item.createdAt,
+                        });
+                      }
+                    }}
+                    disabled={!item.selectedHelperId}
+                    icon="star"
+                    style={styles.actionButton}
+                    buttonColor="#ff9800"
+                  >
+                    结束任务并评价
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    compact
+                    onPress={() => handleStatusChange(item.id, 'in_progress', '进行中')}
+                    loading={updatingTaskId === item.id}
+                    disabled={updatingTaskId === item.id}
+                    icon="undo"
+                    style={styles.actionButton}
+                  >
+                    重新进行
+                  </Button>
+                </>
+              )}
+              {item.status === 'completed' && item.hasReview && (
+                <Chip compact icon="check-circle" style={{ backgroundColor: '#e8f5e9' }} textStyle={{ color: '#4caf50' }}>
+                  已评价
+                </Chip>
               )}
             </View>
           </Card.Content>

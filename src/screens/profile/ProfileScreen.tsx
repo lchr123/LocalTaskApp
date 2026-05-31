@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, Pressable, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Alert, Platform, Image } from 'react-native';
 import { Text, useTheme, Divider, Button, TextInput, Portal, Modal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -22,6 +22,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { formatRating } from '../../utils/formatters';
 import apiClient from '../../services/api';
 import { navigateToAuth, resetToMain } from '../../navigation/navigationRef';
+import { uploadService } from '../../services/uploadService';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -76,6 +77,50 @@ export default function ProfileScreen() {
     setNewNickname(user?.nickname || '');
     setNicknameModalVisible(true);
   }, [user?.nickname]);
+
+  /**
+   * Handle avatar change - pick image, upload to S3, update profile
+   */
+  const handleChangeAvatar = useCallback(async () => {
+    try {
+      const ExpoImagePicker = await import('expo-image-picker');
+      const permResult = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permResult.granted) {
+        if (Platform.OS === 'web') {
+          window.alert('需要相册访问权限');
+        }
+        return;
+      }
+
+      const result = await ExpoImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const remoteUrl = await uploadService.uploadImage({
+        uri: asset.uri,
+        fileName: `avatar_${Date.now()}.jpg`,
+        mimeType: asset.mimeType || 'image/jpeg',
+        folder: 'avatars',
+      });
+
+      const res = await apiClient.patch('/users/me', { avatarUrl: remoteUrl });
+      setUser(res.data);
+
+      if (Platform.OS === 'web') {
+        window.alert('头像更新成功');
+      }
+    } catch (error) {
+      if (Platform.OS === 'web') {
+        window.alert('头像更新失败，请重试');
+      }
+    }
+  }, [setUser]);
 
   /**
    * Save new nickname via PATCH /users/me
@@ -157,15 +202,37 @@ export default function ProfileScreen() {
     >
       {/* User Info Section */}
       <View style={styles.userSection} accessibilityLabel="用户信息">
-        <View style={styles.avatarContainer}>
-          <View style={styles.avatarPlaceholder}>
-            <MaterialCommunityIcons
-              name="account-circle"
-              size={72}
-              color={isLoggedIn ? theme.colors.primary : theme.colors.outline}
+        <Pressable
+          style={styles.avatarContainer}
+          onPress={() => {
+            if (isLoggedIn) {
+              handleChangeAvatar();
+            }
+          }}
+          accessibilityLabel={isLoggedIn ? '点击修改头像' : '头像'}
+          accessibilityRole={isLoggedIn ? 'button' : 'image'}
+        >
+          {user?.avatarUrl ? (
+            <Image
+              source={{ uri: user.avatarUrl }}
+              style={styles.avatarImage}
+              accessibilityLabel="用户头像"
             />
-          </View>
-        </View>
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <MaterialCommunityIcons
+                name="account-circle"
+                size={72}
+                color={isLoggedIn ? theme.colors.primary : theme.colors.outline}
+              />
+            </View>
+          )}
+          {isLoggedIn && (
+            <View style={styles.avatarEditBadge}>
+              <MaterialCommunityIcons name="camera" size={14} color="#fff" />
+            </View>
+          )}
+        </Pressable>
         <Text
           variant="headlineSmall"
           style={styles.nickname}
@@ -258,7 +325,7 @@ export default function ProfileScreen() {
         style={styles.menuItem}
         onPress={() =>
           requireLogin(() => {
-            (navigation as any).navigate('Tasks', { screen: 'MyTasks' });
+            (navigation as any).navigate('Tasks', { screen: 'MyTasksTab' });
           })
         }
         accessibilityLabel="查看我发布的任务"
@@ -402,11 +469,29 @@ const styles = StyleSheet.create({
   avatarContainer: {
     marginBottom: 12,
   },
+  avatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
   avatarPlaceholder: {
     width: 72,
     height: 72,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   nickname: {
     fontWeight: '600',

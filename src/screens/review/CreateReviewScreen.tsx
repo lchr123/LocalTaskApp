@@ -97,23 +97,6 @@ export default function CreateReviewScreen() {
   }, [ratingError]);
 
   /**
-   * Show confirmation dialog before submitting.
-   * Requirement 8.3: Correctness Property 3 - reviews are immutable once submitted.
-   */
-  const handleSubmitPress = useCallback(() => {
-    if (!validateForm()) return;
-
-    Alert.alert(
-      '确认提交评价',
-      `您将为 ${revieweeNickname} 提交 ${rating} 星评价。评价提交后不可修改，确认提交吗？`,
-      [
-        { text: '取消', style: 'cancel' },
-        { text: '确认提交', onPress: performSubmit },
-      ]
-    );
-  }, [validateForm, rating, revieweeNickname]);
-
-  /**
    * Perform the actual review submission.
    * Requirement 8.3: Save review and display success.
    * Requirement 8.4: Handle duplicate review error from backend.
@@ -129,12 +112,15 @@ export default function CreateReviewScreen() {
         comment: comment.trim() || undefined,
       });
 
-      setSuccessVisible(true);
-
-      // Navigate back after showing success
-      setTimeout(() => {
+      if (Platform.OS === 'web') {
+        window.alert('✅ 评价提交成功！');
         navigation.goBack();
-      }, 1500);
+      } else {
+        setSuccessVisible(true);
+        setTimeout(() => {
+          navigation.goBack();
+        }, 1500);
+      }
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : '提交评价失败';
@@ -147,6 +133,32 @@ export default function CreateReviewScreen() {
       }
     }
   }, [submitReview, taskId, revieweeId, rating, comment, navigation]);
+
+  /**
+   * Show confirmation dialog before submitting.
+   * Requirement 8.3: Correctness Property 3 - reviews are immutable once submitted.
+   */
+  const handleSubmitPress = useCallback(() => {
+    if (!validateForm()) return;
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        `您将为 ${revieweeNickname} 提交 ${rating} 星评价。评价提交后不可修改，确认提交吗？`
+      );
+      if (confirmed) {
+        performSubmit();
+      }
+    } else {
+      Alert.alert(
+        '确认提交评价',
+        `您将为 ${revieweeNickname} 提交 ${rating} 星评价。评价提交后不可修改，确认提交吗？`,
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '确认提交', onPress: performSubmit },
+        ]
+      );
+    }
+  }, [validateForm, rating, revieweeNickname, performSubmit]);
 
   // ─── Render: Already Reviewed ────────────────────────────────────────────
 

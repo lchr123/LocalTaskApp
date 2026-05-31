@@ -17,6 +17,7 @@ import { Snackbar, Text } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { useTaskStore } from '../../stores/taskStore';
+import { useChatStore } from '../../stores/chatStore';
 import { Intent } from '../../types/task';
 import { IntentCard } from '../../components/task/IntentCard';
 import { LoadingIndicator, ErrorRetry, EmptyState } from '../../components/common';
@@ -35,6 +36,8 @@ export default function IntentListScreen({ route }: Props) {
     selectHelper,
     clearError,
   } = useTaskStore();
+
+  const { fetchSessions } = useChatStore();
 
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -56,6 +59,8 @@ export default function IntentListScreen({ route }: Props) {
           await selectHelper(taskId, intent.helperId);
           // Re-fetch intents to show updated statuses
           await fetchIntents(taskId);
+          // Refresh chat sessions so the new session appears in chat list
+          await fetchSessions();
           setSnackbarMessage(`已选择 ${intent.helperNickname} 为帮手，对话已创建`);
           setSnackbarVisible(true);
         } catch {

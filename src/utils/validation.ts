@@ -40,6 +40,10 @@ export const registerByPhoneSchema = z.object({
       passwordRegex,
       '密码必须包含至少1个小写字母、1个数字'
     ),
+  confirmPassword: z.string().min(1, '请再次输入密码'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: '两次输入的密码不一致',
+  path: ['confirmPassword'],
 });
 
 export type RegisterByPhoneData = z.infer<typeof registerByPhoneSchema>;
@@ -58,6 +62,10 @@ export const registerByEmailSchema = z.object({
       passwordRegex,
       '密码必须包含至少1个小写字母、1个数字'
     ),
+  confirmPassword: z.string().min(1, '请再次输入密码'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: '两次输入的密码不一致',
+  path: ['confirmPassword'],
 });
 
 export type RegisterByEmailData = z.infer<typeof registerByEmailSchema>;
@@ -173,6 +181,7 @@ export const createTaskFormSchema = z.object({
     ),
   reward: z
     .number('请输入有效的报酬金额')
+    .int('报酬金额必须为整数')
     .min(VALIDATION.TASK_REWARD_MIN, `报酬金额最低为${VALIDATION.TASK_REWARD_MIN}元`)
     .max(VALIDATION.TASK_REWARD_MAX, `报酬金额最高为${VALIDATION.TASK_REWARD_MAX}元`),
 });

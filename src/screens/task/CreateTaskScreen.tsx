@@ -37,7 +37,7 @@ import AuthRequired from '../../components/auth/AuthRequired';
 export default function CreateTaskScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
-  const { createTask, isLoading } = useTaskStore();
+  const { createTask, isLoading, refresh } = useTaskStore();
 
   const [successVisible, setSuccessVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -72,6 +72,9 @@ export default function CreateTaskScreen() {
 
         // Show success feedback
         setSuccessVisible(true);
+
+        // Refresh the home page task list
+        refresh();
 
         // Navigate to task list after a brief delay for user to see the success message
         setTimeout(() => {

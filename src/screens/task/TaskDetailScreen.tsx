@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform } from 'react-native';
 import {
   Card,
   Text,
@@ -196,6 +196,7 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
   }
 
   // Determine if intent button should be shown (Requirement 6.7)
+  const isLoggedIn = !!user?.id;
   const showIntentButton = currentTask.status === 'open' && currentTask.posterId !== user?.id;
 
   return (
@@ -381,12 +382,21 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
         <View style={styles.bottomButtonContainer}>
           <Button
             mode="contained"
-            onPress={handleIntentButtonPress}
+            onPress={() => {
+              if (!isLoggedIn) {
+                if (Platform.OS === 'web') {
+                  window.alert('请先登录后再提交意向');
+                }
+                (navigation as any).navigate('Auth');
+                return;
+              }
+              handleIntentButtonPress();
+            }}
             style={styles.intentButton}
             labelStyle={styles.intentButtonLabel}
-            accessibilityLabel="我想帮忙"
+            accessibilityLabel={isLoggedIn ? '我想帮忙' : '帮忙前请先登录'}
           >
-            我想帮忙
+            {isLoggedIn ? '我想帮忙' : '帮忙前请先登录'}
           </Button>
         </View>
       )}

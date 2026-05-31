@@ -12,12 +12,13 @@ export interface UploadImageOptions {
   uri: string;
   fileName: string;
   mimeType: string;
+  folder?: 'avatars' | 'chats';
   onProgress?: (progress: number) => void;
 }
 
 class UploadService {
   async uploadImage(options: UploadImageOptions): Promise<string> {
-    const { uri, fileName, mimeType, onProgress } = options;
+    const { uri, fileName, mimeType, folder, onProgress } = options;
 
     const formData = new FormData();
 
@@ -41,9 +42,12 @@ class UploadService {
       } as any);
     }
 
+    const endpoint = folder
+      ? `${API_ENDPOINTS.UPLOAD_IMAGE}?folder=${folder}`
+      : API_ENDPOINTS.UPLOAD_IMAGE;
 
     const response = await apiClient.post<ImageUploadResponse>(
-      API_ENDPOINTS.UPLOAD_IMAGE,
+      endpoint,
       formData,
       {
         onUploadProgress: (progressEvent) => {

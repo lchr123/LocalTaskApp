@@ -192,13 +192,38 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
       // Confirm registration with Cognito
       await confirmRegistration(identifier, fullCode);
 
-      // Registration complete! Show success message then navigate to Login.
-      Alert.alert(
-        '注册成功 🎉',
-        '账号验证完成，请使用您的邮箱和密码登录。',
-        [{ text: '去登录', onPress: () => navigation.navigate('Login') }]
-      );
+      // Registration complete! Navigate to Login.
+      if (Platform.OS === 'web') {
+        window.alert('注册成功 🎉\n账号验证完成，请使用您的邮箱和密码登录。');
+        navigation.navigate('Login');
+      } else {
+        Alert.alert(
+          '注册成功 🎉',
+          '账号验证完成，请使用您的邮箱和密码登录。',
+          [{ text: '去登录', onPress: () => navigation.navigate('Login') }]
+        );
+      }
     } catch (error: unknown) {
+      // Debug: log the actual error to understand its format
+      console.log('[VerifyCode] error:', JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
+      console.log('[VerifyCode] error.message:', (error as any)?.message);
+      console.log('[VerifyCode] error.name:', (error as any)?.name);
+
+      // Check if user is already confirmed (came from re-registration flow)
+      if (isAlreadyConfirmedError(error)) {
+        if (Platform.OS === 'web') {
+          window.alert('该账号已验证，请直接登录。');
+          navigation.navigate('Login');
+        } else {
+          Alert.alert(
+            '账号已验证',
+            '该账号已完成验证，请直接登录。',
+            [{ text: '去登录', onPress: () => navigation.navigate('Login') }]
+          );
+        }
+        return;
+      }
+
       const newAttempts = errorAttempts + 1;
       setErrorAttempts(newAttempts);
 
@@ -483,6 +508,18 @@ function mapVerifyError(error: unknown): string {
   }
 
   return '验证码确认失败，请重试';
+}
+
+/**
+ * Check if the error indicates the user is already confirmed.
+ * Cognito returns: {"__type":"NotAuthorizedException","message":"User cannot be confirmed. Current status is CONFIRMED"}
+ */
+function isAlreadyConfirmedError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return msg.includes('cannot be confirmed')
+    || msg.includes('current status is confirmed')
+    || msg.includes('already confirmed');
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────

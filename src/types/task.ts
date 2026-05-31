@@ -19,6 +19,8 @@ export interface Task {
   intentCount: number;
   selectedHelperId?: string;
   createdAt: string;
+  updatedAt?: string;
+  hasReview?: boolean;
   distance?: number;
 }
 

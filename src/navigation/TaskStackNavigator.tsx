@@ -2,7 +2,7 @@
  * Task Stack Navigator
  *
  * Stack navigation for the task module:
- * TaskList → TaskDetail → IntentList
+ * MyTasksTab → TaskDetail → IntentList / CreateReview
  *
  * Uses native stack navigator for smooth animations (< 300ms).
  *
@@ -13,18 +13,24 @@
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import TaskListScreen from '../screens/task/TaskListScreen';
 import TaskDetailScreen from '../screens/task/TaskDetailScreen';
 import IntentListScreen from '../screens/task/IntentListScreen';
-import MyTasksScreen from '../screens/task/MyTasksScreen';
+import MyTasksTabScreen from '../screens/task/MyTasksTabScreen';
+import CreateReviewScreen from '../screens/review/CreateReviewScreen';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
 export type TaskStackParamList = {
-  TaskList: undefined;
+  MyTasksTab: undefined;
   TaskDetail: { taskId: string };
   IntentList: { taskId: string };
-  MyTasks: undefined;
+  CreateReview: {
+    taskId: string;
+    revieweeId: string;
+    revieweeNickname: string;
+    completedAt: string;
+    alreadyReviewed?: boolean;
+  };
 };
 
 // ─── Stack Navigator ─────────────────────────────────────────────────────────
@@ -36,7 +42,7 @@ const Stack = createNativeStackNavigator<TaskStackParamList>();
 export default function TaskStackNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="TaskList"
+      initialRouteName="MyTasksTab"
       screenOptions={{
         headerShown: true,
         animation: 'slide_from_right',
@@ -44,9 +50,9 @@ export default function TaskStackNavigator() {
       }}
     >
       <Stack.Screen
-        name="TaskList"
-        component={TaskListScreen}
-        options={{ title: '任务列表', headerShown: false }}
+        name="MyTasksTab"
+        component={MyTasksTabScreen}
+        options={{ title: '我的任务', headerShown: false }}
       />
       <Stack.Screen
         name="TaskDetail"
@@ -59,9 +65,9 @@ export default function TaskStackNavigator() {
         options={{ title: '意向列表' }}
       />
       <Stack.Screen
-        name="MyTasks"
-        component={MyTasksScreen}
-        options={{ title: '我发布的任务' }}
+        name="CreateReview"
+        component={CreateReviewScreen}
+        options={{ title: '评价' }}
       />
     </Stack.Navigator>
   );

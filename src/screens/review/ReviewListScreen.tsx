@@ -1,25 +1,23 @@
 /**
  * Review List Screen
  *
- * Displays a user's historical reviews with average rating summary.
- * Uses FlatList for efficient rendering of the review list.
+ * Displays a user's reviews with two tabs:
+ * - 收到的评价 (Reviews received)
+ * - 我给出的 (Reviews I gave)
  *
  * Requirements covered:
- * - 8.5: Display historical reviews and average rating (1 decimal place) on user's profile page
+ * - 8.5: Display historical reviews and average rating
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import { Text, useTheme, SegmentedButtons, ActivityIndicator } from 'react-native-paper';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useReviewStore } from '../../stores/reviewStore';
+import apiClient from '../../services/api';
 import { Review } from '../../types/review';
 import ReviewCard from '../../components/review/ReviewCard';
-import { LoadingIndicator, ErrorRetry, EmptyState } from '../../components/common';
 import { formatRating } from '../../utils/formatters';
-
-// ─── Route Params ────────────────────────────────────────────────────────────
 
 type ReviewListRouteParams = {
   ReviewList: {
@@ -28,144 +26,122 @@ type ReviewListRouteParams = {
   };
 };
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export default function ReviewListScreen() {
   const theme = useTheme();
   const route = useRoute<RouteProp<ReviewListRouteParams, 'ReviewList'>>();
   const { userId, nickname } = route.params;
 
-  const {
-    reviews,
-    averageRating,
-    totalReviews,
-    isLoading,
-    error,
-    fetchUserReviews,
-  } = useReviewStore();
+  const [activeTab, setActiveTab] = useState('received');
+  const [receivedReviews, setReceivedReviews] = useState<Review[]>([]);
+  const [givenReviews, setGivenReviews] = useState<Review[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
-  /**
-   * Fetch reviews on mount.
-   */
+  const fetchReviews = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [receivedRes, givenRes] = await Promise.all([
+        apiClient.get(`/users/${userId}/reviews`),
+        apiClient.get(`/users/${userId}/reviews-given`),
+      ]);
+      setReceivedReviews(receivedRes.data.reviews || []);
+      setAverageRating(receivedRes.data.averageRating || 0);
+      setGivenReviews(givenRes.data.reviews || []);
+    } catch {
+      // Ignore errors
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
-    fetchUserReviews(userId);
-  }, [userId, fetchUserReviews]);
+    fetchReviews();
+  }, [fetchReviews]);
 
-  /**
-   * Handle retry on error.
-   */
-  const handleRetry = useCallback(async () => {
-    await fetchUserReviews(userId);
-  }, [userId, fetchUserReviews]);
+  const currentReviews = activeTab === 'received' ? receivedReviews : givenReviews;
 
-  /**
-   * Render each review item.
-   */
   const renderReviewItem = useCallback(
     ({ item }: { item: Review }) => <ReviewCard review={item} />,
     []
   );
 
-  /**
-   * Key extractor for FlatList.
-   */
   const keyExtractor = useCallback((item: Review) => item.id, []);
 
-  /**
-   * Render the header with average rating summary.
-   * Requirement 8.5: Display average rating with 1 decimal place.
-   */
   const renderHeader = useCallback(() => {
-    if (totalReviews === 0) return null;
+    if (activeTab !== 'received' || receivedReviews.length === 0) return null;
 
     return (
-      <View
-        style={[styles.header, { borderBottomColor: theme.colors.outlineVariant }]}
-        accessibilityLabel={`平均评分${formatRating(averageRating)}星，共${totalReviews}条评价`}
-      >
+      <View style={[styles.header, { borderBottomColor: theme.colors.outlineVariant }]}>
         <View style={styles.ratingContainer}>
-          <MaterialCommunityIcons
-            name="star"
-            size={32}
-            color="#FFB800"
-          />
+          <MaterialCommunityIcons name="star" size={32} color="#FFB800" />
           <Text variant="headlineMedium" style={styles.ratingValue}>
             {formatRating(averageRating)}
           </Text>
         </View>
-        <Text
-          variant="bodyMedium"
-          style={[styles.totalReviews, { color: theme.colors.outline }]}
-          accessibilityLabel={`共${totalReviews}条评价`}
-        >
-          共 {totalReviews} 条评价
+        <Text variant="bodyMedium" style={{ color: theme.colors.outline, marginTop: 4 }}>
+          共 {receivedReviews.length} 条评价
         </Text>
       </View>
     );
-  }, [averageRating, totalReviews, theme.colors.outlineVariant, theme.colors.outline]);
-
-  // ─── Loading State ─────────────────────────────────────────────────────────
+  }, [activeTab, receivedReviews.length, averageRating, theme.colors]);
 
   if (isLoading) {
     return (
-      <View style={styles.container} accessibilityLabel="评价列表加载中">
-        <LoadingIndicator mode="fullscreen" message="加载评价中..." />
+      <View style={styles.center}>
+        <ActivityIndicator size="large" />
       </View>
     );
   }
-
-  // ─── Error State ───────────────────────────────────────────────────────────
-
-  if (error) {
-    return (
-      <View style={styles.container} accessibilityLabel="评价列表加载失败">
-        <ErrorRetry
-          errorMessage={error}
-          onRetry={handleRetry}
-          accessibilityLabel="评价加载失败，点击重试"
-        />
-      </View>
-    );
-  }
-
-  // ─── Empty State ───────────────────────────────────────────────────────────
-
-  if (reviews.length === 0) {
-    return (
-      <View style={styles.container} accessibilityLabel="暂无评价">
-        <EmptyState
-          icon="star-outline"
-          message="暂无评价"
-          description={nickname ? `${nickname} 还没有收到评价` : '该用户还没有收到评价'}
-          accessibilityLabel="暂无评价空状态"
-        />
-      </View>
-    );
-  }
-
-  // ─── Review List ───────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.container} accessibilityLabel="评价列表页面">
-      <FlatList
-        data={reviews}
-        renderItem={renderReviewItem}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        accessibilityLabel="评价列表"
-      />
+    <View style={styles.container}>
+      <View style={styles.tabContainer}>
+        <SegmentedButtons
+          value={activeTab}
+          onValueChange={setActiveTab}
+          buttons={[
+            { value: 'received', label: `收到的 (${receivedReviews.length})` },
+            { value: 'given', label: `给出的 (${givenReviews.length})` },
+          ]}
+        />
+      </View>
+
+      {currentReviews.length === 0 ? (
+        <View style={styles.center}>
+          <Text variant="bodyLarge" style={{ opacity: 0.6 }}>
+            {activeTab === 'received' ? '暂无收到的评价' : '暂无给出的评价'}
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={currentReviews}
+          renderItem={renderReviewItem}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 }
-
-// ─── Styles ──────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  tabContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E0E0E0',
   },
   listContent: {
     flexGrow: 1,
@@ -183,8 +159,5 @@ const styles = StyleSheet.create({
   },
   ratingValue: {
     fontWeight: 'bold',
-  },
-  totalReviews: {
-    marginTop: 4,
   },
 });
