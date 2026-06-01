@@ -1,0 +1,53 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install and Build
+        run: |
+          npm install
+          npm run build:web
+
+      - name: Clean up Lightsail
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.LIGHTSAIL_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/localtaskapp
+            rm -rf ./dist ./package.json ./docker-compose.yml ./Dockerfile ./nginx.conf
+
+      - name: Copy files to Lightsail
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.LIGHTSAIL_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "./dist,./package.json,./docker-compose.yml,./Dockerfile,./nginx.conf"
+          target: "/home/ubuntu/localtaskapp"
+
+      - name: Deploy on Lightsail
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.LIGHTSAIL_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/ubuntu/localtaskapp
+            echo "${{ secrets.PROD_ENV_FILE }}" > .env
+            docker-compose down
+            docker-compose up -d --build
+            docker image prune -f

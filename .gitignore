@@ -46,7 +46,3 @@ command.md
 
 # pem key file
 *.pem
-
-docker-compose.yml
-dockerfile
-nginx.conf
