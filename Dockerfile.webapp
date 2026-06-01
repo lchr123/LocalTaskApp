@@ -1,8 +1,5 @@
 FROM node:20-alpine AS production
 
-# Add non-root user for security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
 WORKDIR /app
 
 # Build and download node_modules
@@ -15,9 +12,6 @@ COPY ./dist ./dist
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=8081
-
-# Use non-root user
-USER appuser
 
 EXPOSE 8081
 
