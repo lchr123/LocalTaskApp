@@ -5,6 +5,7 @@ WORKDIR /app
 # Copy production dependencies and built output
 COPY package.json package-lock.json ./
 COPY ./dist ./dist
+COPY ./node_modules ./node_modules
 
 # Set environment
 ENV NODE_ENV=production

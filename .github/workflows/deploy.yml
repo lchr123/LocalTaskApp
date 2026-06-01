@@ -28,7 +28,7 @@ jobs:
           key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/localtaskapp
-            rm -rf ./dist ./package.json ./package-lock.json ./docker-compose.yml ./Dockerfile.nginx ./Dockerfile.webapp ./nginx.conf
+            rm -rf ./dist ./node_modules ./package.json ./package-lock.json ./docker-compose.yml ./Dockerfile.nginx ./Dockerfile.webapp ./nginx.conf
 
       - name: Copy files to Lightsail
         uses: appleboy/scp-action@master
@@ -36,7 +36,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_IP }}
           username: ubuntu
           key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
-          source: "./dist,./package.json,./package-lock.json,./docker-compose.yml,./Dockerfile.nginx,./Dockerfile.webapp,./nginx.conf"
+          source: "./dist,./node_modules,./package.json,./package-lock.json,./docker-compose.yml,./Dockerfile.nginx,./Dockerfile.webapp,./nginx.conf"
           target: "/home/ubuntu/localtaskapp"
 
       - name: Deploy on Lightsail
