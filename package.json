@@ -48,7 +48,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start -c",
+    "start": "dotenv -e .env expo start -c",
     "start:dev": "dotenv -e .env.dev -- expo start -c",
     "start:staging": "dotenv -e .env.staging -- expo start -c",
     "start:prod": "dotenv -e .env.production -- expo start -c",
