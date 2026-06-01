@@ -3,6 +3,7 @@ FROM node:20-alpine AS production
 WORKDIR /app
 
 # Copy production dependencies and built output
+COPY package.json package-lock.json ./
 COPY ./dist ./dist
 
 # Set environment
