@@ -25,7 +25,7 @@ jobs:
         with:
           host: ${{ secrets.LIGHTSAIL_IP }}
           username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/localtaskapp
             rm -rf ./dist ./package.json ./docker-compose.yml ./Dockerfile ./nginx.conf
@@ -35,7 +35,7 @@ jobs:
         with:
           host: ${{ secrets.LIGHTSAIL_IP }}
           username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
           source: "./dist,./package.json,./docker-compose.yml,./Dockerfile,./nginx.conf"
           target: "/home/ubuntu/localtaskapp"
 
@@ -44,7 +44,7 @@ jobs:
         with:
           host: ${{ secrets.LIGHTSAIL_IP }}
           username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/localtaskapp
             echo "${{ secrets.PROD_ENV_FILE }}" > .env
