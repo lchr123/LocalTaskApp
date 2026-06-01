@@ -17,6 +17,7 @@ jobs:
 
       - name: Install and Build
         run: |
+          echo "${{ secrets.PROD_ENV_FILE }}" > .env
           npm install
           npm run build:web
 
@@ -47,7 +48,6 @@ jobs:
           key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
           script: |
             cd /home/ubuntu/localtaskapp
-            echo "${{ secrets.PROD_ENV_FILE }}" > .env
             sudo docker compose down -v --rmi all --remove-orphans
             sudo docker compose up -d --build
             sudo docker image prune -f
