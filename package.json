@@ -57,7 +57,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
-    "build:web": "dotenv -e .env expo export -p web"
+    "build:web": "expo export -p web"
   },
   "private": true
 }
