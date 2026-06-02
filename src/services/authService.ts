@@ -36,7 +36,7 @@ import { Amplify } from 'aws-amplify';
 import { awsConfig } from '../config/aws-config';
 
 Amplify.configure(awsConfig);
-console.log('AWS config:', awsConfig);
+
 // ─── Mock Auth Helpers ───────────────────────────────────────────────────────
 
 /**
