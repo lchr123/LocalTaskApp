@@ -10,11 +10,19 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TaskListScreen from '../screens/task/TaskListScreen';
 import TaskDetailScreen from '../screens/task/TaskDetailScreen';
 import IntentListScreen from '../screens/task/IntentListScreen';
+import CreateReportScreen from '../screens/report/CreateReportScreen';
+import HelpScreen from '../screens/profile/HelpScreen';
 
 export type HomeStackParamList = {
   TaskList: undefined;
   TaskDetail: { taskId: string };
   IntentList: { taskId: string };
+  CreateReport: {
+    targetType: 'user' | 'task';
+    targetId: string;
+    targetName: string;
+  };
+  Help: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -43,6 +51,16 @@ export default function HomeStackNavigator() {
         name="IntentList"
         component={IntentListScreen}
         options={{ title: '意向列表' }}
+      />
+      <Stack.Screen
+        name="CreateReport"
+        component={CreateReportScreen}
+        options={{ title: '举报' }}
+      />
+      <Stack.Screen
+        name="Help"
+        component={HelpScreen}
+        options={{ title: '使用帮助' }}
       />
     </Stack.Navigator>
   );

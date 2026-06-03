@@ -17,6 +17,7 @@ import TaskDetailScreen from '../screens/task/TaskDetailScreen';
 import IntentListScreen from '../screens/task/IntentListScreen';
 import MyTasksTabScreen from '../screens/task/MyTasksTabScreen';
 import CreateReviewScreen from '../screens/review/CreateReviewScreen';
+import CreateReportScreen from '../screens/report/CreateReportScreen';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -30,6 +31,11 @@ export type TaskStackParamList = {
     revieweeNickname: string;
     completedAt: string;
     alreadyReviewed?: boolean;
+  };
+  CreateReport: {
+    targetType: 'user' | 'task';
+    targetId: string;
+    targetName: string;
   };
 };
 
@@ -68,6 +74,11 @@ export default function TaskStackNavigator() {
         name="CreateReview"
         component={CreateReviewScreen}
         options={{ title: '评价' }}
+      />
+      <Stack.Screen
+        name="CreateReport"
+        component={CreateReportScreen}
+        options={{ title: '举报' }}
       />
     </Stack.Navigator>
   );

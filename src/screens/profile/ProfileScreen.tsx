@@ -376,6 +376,72 @@ export default function ProfileScreen() {
 
       <Divider />
 
+      <Pressable
+        style={styles.menuItem}
+        onPress={() =>
+          requireLogin(() => {
+            (navigation as any).navigate('MyReports');
+          })
+        }
+        accessibilityLabel="查看我的举报"
+        accessibilityRole="button"
+      >
+        <View style={styles.menuItemLeft}>
+          <MaterialCommunityIcons
+            name="shield-alert-outline"
+            size={24}
+            color={theme.colors.onSurface}
+          />
+          <Text variant="bodyLarge" style={styles.menuItemText}>
+            我的举报
+          </Text>
+        </View>
+        <View style={styles.menuItemRight}>
+          {!isLoggedIn && (
+            <Text
+              variant="bodySmall"
+              style={[styles.menuItemBadge, { color: theme.colors.outline }]}
+            >
+              登录后可用
+            </Text>
+          )}
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={theme.colors.outline}
+          />
+        </View>
+      </Pressable>
+
+      <Divider />
+
+      <Pressable
+        style={styles.menuItem}
+        onPress={() => (navigation as any).navigate('Help')}
+        accessibilityLabel="使用帮助"
+        accessibilityRole="button"
+      >
+        <View style={styles.menuItemLeft}>
+          <MaterialCommunityIcons
+            name="help-circle-outline"
+            size={24}
+            color={theme.colors.onSurface}
+          />
+          <Text variant="bodyLarge" style={styles.menuItemText}>
+            使用帮助
+          </Text>
+        </View>
+        <View style={styles.menuItemRight}>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={theme.colors.outline}
+          />
+        </View>
+      </Pressable>
+
+      <Divider />
+
       {/* Logout Button - Requirements 3.1, 3.2, 3.3 */}
       {isLoggedIn && (
         <View style={styles.logoutSection}>

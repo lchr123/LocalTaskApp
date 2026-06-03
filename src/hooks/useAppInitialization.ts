@@ -16,17 +16,14 @@
 
 import { useEffect, useState } from 'react';
 import { Amplify } from 'aws-amplify';
-import { awsConfig, DEV_MOCK_AUTH } from '../config/aws-config';
+import { awsConfig } from '../config/aws-config';
 import { useAuthStore } from '../stores/authStore';
 
 /**
  * Configure AWS Amplify on app startup.
- * Skipped in mock mode since no real Cognito is available.
  */
 function configureAmplify(): void {
-  if (!DEV_MOCK_AUTH) {
-    Amplify.configure(awsConfig);
-  }
+  Amplify.configure(awsConfig);
 }
 
 /**

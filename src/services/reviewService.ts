@@ -14,8 +14,6 @@
 import apiClient from './api';
 import { Review, ReviewSummary } from '../types/review';
 import { API_ENDPOINTS } from '../utils/constants';
-import { DEV_MOCK_AUTH } from '../config/aws-config';
-import { MOCK_REVIEWS, MOCK_REVIEW_SUMMARY, mockDelay } from './mockData';
 
 /**
  * Payload for submitting a review
@@ -42,21 +40,6 @@ class ReviewService {
    * @returns The created review
    */
   async submitReview(payload: SubmitReviewPayload): Promise<Review> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      const review: Review = {
-        id: 'review-' + Date.now(),
-        taskId: payload.taskId,
-        reviewerId: 'user-001',
-        revieweeId: payload.revieweeId,
-        rating: payload.rating,
-        comment: payload.comment,
-        createdAt: new Date().toISOString(),
-      };
-      MOCK_REVIEWS.unshift(review);
-      return review;
-    }
-
     const response = await apiClient.post<Review>(
       API_ENDPOINTS.REVIEWS,
       payload
@@ -65,11 +48,6 @@ class ReviewService {
   }
 
   async fetchUserReviews(userId: string): Promise<ReviewSummary> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      return MOCK_REVIEW_SUMMARY;
-    }
-
     const response = await apiClient.get<ReviewSummary>(
       API_ENDPOINTS.USER_REVIEWS(userId)
     );

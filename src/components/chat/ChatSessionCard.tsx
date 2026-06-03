@@ -10,9 +10,11 @@
 
 import React, { memo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Avatar, Badge, Text } from 'react-native-paper';
+import { Avatar, Badge, Chip, Text } from 'react-native-paper';
 import { ChatSession } from '../../types/chat';
 import { formatRelativeTime, truncateText } from '../../utils/formatters';
+import { TASK_TYPE_LABELS } from '../../utils/constants';
+import { TaskType } from '../../types/task';
 
 /** Maximum characters for message preview */
 const MESSAGE_PREVIEW_MAX_LENGTH = 40;
@@ -75,15 +77,27 @@ export const ChatSessionCard: React.FC<ChatSessionCardProps> = memo(
 
         {/* Content */}
         <View style={styles.content}>
-          {/* Top row: task title + time */}
+          {/* Top row: task type chip + task title + time */}
           <View style={styles.topRow}>
-            <Text
-              style={styles.taskTitle}
-              numberOfLines={1}
-              accessibilityLabel={`任务: ${session.taskTitle}`}
-            >
-              {session.taskTitle}
-            </Text>
+            <View style={styles.titleRow}>
+              {session.taskType && (
+                <Chip
+                  style={styles.typeChip}
+                  textStyle={styles.typeChipText}
+                  compact
+                  accessibilityLabel={`任务类型: ${TASK_TYPE_LABELS[session.taskType as TaskType] || session.taskType}`}
+                >
+                  {TASK_TYPE_LABELS[session.taskType as TaskType] || session.taskType}
+                </Chip>
+              )}
+              <Text
+                style={styles.taskTitle}
+                numberOfLines={1}
+                accessibilityLabel={`任务: ${session.taskTitle}`}
+              >
+                {session.taskTitle}
+              </Text>
+            </View>
             <Text
               style={styles.time}
               accessibilityLabel={`时间: ${timeDisplay}`}
@@ -148,12 +162,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 2,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  typeChip: {
+    height: 22,
+    marginRight: 6,
+    backgroundColor: '#E8F5E9',
+  },
+  typeChipText: {
+    fontSize: 11,
+    lineHeight: 14,
+    marginVertical: 0,
+    marginHorizontal: 4,
+    color: '#2E7D32',
+  },
   taskTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: '#212121',
     flex: 1,
-    marginRight: 8,
   },
   time: {
     fontSize: 12,

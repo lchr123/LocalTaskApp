@@ -19,6 +19,7 @@ import {
   StyleSheet,
   RefreshControl,
   ListRenderItemInfo,
+  TouchableOpacity,
 } from 'react-native';
 import { Text, Icon, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -229,7 +230,19 @@ export default function TaskListScreen() {
       </View>
 
       {/* Filter & Sort Bar */}
-      <FilterBar filter={filter} setFilter={setFilter} />
+      <View style={styles.filterRow}>
+        <View style={styles.filterBarWrapper}>
+          <FilterBar filter={filter} setFilter={setFilter} />
+        </View>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Help')}
+          style={styles.helpButton}
+          accessibilityLabel="使用帮助"
+          accessibilityRole="button"
+        >
+          <Icon source="help-circle-outline" size={22} color="#757575" />
+        </TouchableOpacity>
+      </View>
 
       <FlatList
         data={tasks}
@@ -277,6 +290,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1565C0',
     textAlign: 'center',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterBarWrapper: {
+    flex: 1,
+  },
+  helpButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   centeredContainer: {
     flex: 1,

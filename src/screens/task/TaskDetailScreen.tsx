@@ -29,13 +29,15 @@ import {
   Chip,
   Divider,
   ActivityIndicator,
+  IconButton,
+  Menu,
 } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { useTaskStore } from '../../stores/taskStore';
 import { useAuthStore } from '../../stores/authStore';
 import { appDialog } from '../../stores/dialogStore';
-import { formatReward, formatRelativeTime } from '../../utils/formatters';
+import { formatReward, formatRelativeTime, formatRating } from '../../utils/formatters';
 import { TASK_TYPE_LABELS, VALIDATION } from '../../utils/constants';
 
 type Props = NativeStackScreenProps<TaskStackParamList, 'TaskDetail'>;
@@ -65,6 +67,20 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  // Set up header right menu button
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton
+          icon="dots-vertical"
+          onPress={() => setMenuVisible(true)}
+          accessibilityLabel="更多操作"
+        />
+      ),
+    });
+  }, [navigation]);
 
   // Load task detail and check if user already submitted intent
   useEffect(() => {
@@ -214,19 +230,51 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
           >
             {TASK_TYPE_LABELS[currentTask.type]}
           </Chip>
-          <Chip
-            mode="flat"
-            style={[
-              styles.statusChip,
-              currentTask.status === 'open' && styles.statusOpen,
-              currentTask.status === 'in_progress' && styles.statusInProgress,
-              currentTask.status === 'completed' && styles.statusCompleted,
-              currentTask.status === 'cancelled' && styles.statusCancelled,
-            ]}
-            accessibilityLabel={`任务状态：${getStatusLabel(currentTask.status)}`}
-          >
-            {getStatusLabel(currentTask.status)}
-          </Chip>
+          <View style={styles.headerRightRow}>
+            <Chip
+              mode="flat"
+              style={[
+                styles.statusChip,
+                currentTask.status === 'open' && styles.statusOpen,
+                currentTask.status === 'in_progress' && styles.statusInProgress,
+                currentTask.status === 'completed' && styles.statusCompleted,
+                currentTask.status === 'cancelled' && styles.statusCancelled,
+              ]}
+              accessibilityLabel={`任务状态：${getStatusLabel(currentTask.status)}`}
+            >
+              {getStatusLabel(currentTask.status)}
+            </Chip>
+            <Menu
+              visible={menuVisible}
+              onDismiss={() => setMenuVisible(false)}
+              anchor={
+                <IconButton
+                  icon="dots-vertical"
+                  size={20}
+                  onPress={() => setMenuVisible(true)}
+                  accessibilityLabel="更多操作"
+                />
+              }
+            >
+              <Menu.Item
+                leadingIcon="alert-octagon"
+                onPress={() => {
+                  setMenuVisible(false);
+                  if (!user?.id) {
+                    appDialog.alert({ message: '请先登录后再举报' });
+                    return;
+                  }
+                  (navigation as any).navigate('CreateReport', {
+                    targetType: 'task',
+                    targetId: taskId,
+                    targetName: currentTask?.description?.slice(0, 30) || '任务',
+                  });
+                }}
+                title="举报此任务"
+                accessibilityLabel="举报此任务"
+              />
+            </Menu>
+          </View>
         </View>
 
         {/* Description (Requirement 5.3) */}
@@ -321,9 +369,9 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
               </Text>
               <Text
                 variant="bodyMedium"
-                accessibilityLabel={`发布者评分：${currentTask.posterRating.toFixed(1)}分`}
+                accessibilityLabel={`发布者评分：${formatRating(currentTask.posterRating)}`}
               >
-                ⭐ {currentTask.posterRating.toFixed(1)}
+                ⭐ {formatRating(currentTask.posterRating)}
               </Text>
             </View>
           </Card.Content>
@@ -541,6 +589,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  headerRightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   statusChip: {
     backgroundColor: '#e0e0e0',

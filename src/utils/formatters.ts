@@ -150,9 +150,11 @@ export function truncateText(text: string, maxLength: number): string {
 
 /**
  * Format a rating to 1 decimal place.
- * Example: 4.567 → "4.6"
+ * Returns '--' when rating is 0 (no reviews yet).
+ * Example: 4.567 → "4.6", 0 → "--"
  */
-export function formatRating(rating: number): string {
+export function formatRating(rating: number | undefined | null): string {
+  if (!rating || rating === 0) return '--';
   return rating.toFixed(1);
 }
 

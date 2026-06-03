@@ -4,9 +4,6 @@
  * Wraps AWS Amplify Auth (Cognito) operations for the LocalTask platform.
  * Handles user registration, login, logout, password reset, and session management.
  *
- * When DEV_MOCK_AUTH is true, all operations are simulated locally
- * without calling AWS Cognito (for UI testing without a backend).
- *
  * Requirements covered:
  * - 1.3: Validate and create user via Cognito, send verification code within 60s
  * - 1.4: Correct verification code → complete registration and auto-login
@@ -31,37 +28,11 @@ import {
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { AuthTokens } from '../types/auth';
-import { TOKEN_EXPIRY_MINUTES, DEV_MOCK_AUTH } from '../config/aws-config';
+import { TOKEN_EXPIRY_MINUTES } from '../config/aws-config';
 import { Amplify } from 'aws-amplify';
 import { awsConfig } from '../config/aws-config';
 
 Amplify.configure(awsConfig);
-
-// ─── Mock Auth Helpers ───────────────────────────────────────────────────────
-
-/**
- * Generate mock tokens for development mode.
- * Simulates a valid auth session without real Cognito.
- */
-function generateMockTokens(): AuthTokens {
-  return {
-    accessToken: 'mock-access-token-' + Date.now(),
-    refreshToken: 'mock-refresh-token-' + Date.now(),
-    idToken: 'mock-id-token-' + Date.now(),
-    expiresAt: Date.now() + TOKEN_EXPIRY_MINUTES * 60 * 1000,
-  };
-}
-
-/**
- * Simulate network delay (300-800ms) for realistic UX in mock mode.
- */
-function mockDelay(): Promise<void> {
-  const delay = 300 + Math.random() * 500;
-  return new Promise((resolve) => setTimeout(resolve, delay));
-}
-
-/** In-memory store of mock registered users (for dev session only) */
-const mockRegisteredUsers = new Map<string, { password: string; verified: boolean }>();
 
 /**
  * Secure Store keys for token persistence
@@ -274,16 +245,6 @@ class AuthService {
    * @param method - 'email' or 'phone' indicating which identifier is used
    */
   async register(identifier: string, password: string, method: 'email' | 'phone'): Promise<void> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      if (mockRegisteredUsers.has(identifier)) {
-        throw new Error('User already exists');
-      }
-      mockRegisteredUsers.set(identifier, { password, verified: false });
-      console.log(`[MOCK AUTH] Registered: ${identifier} (${method}). Verification code: 123456`);
-      return;
-    }
-    console.log('5')
     const userAttributes: Record<string, string> = {};
 
     if (method === 'email') {
@@ -309,21 +270,6 @@ class AuthService {
    * @param code - 6-digit verification code
    */
   async confirmRegistration(identifier: string, code: string): Promise<void> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      const user = mockRegisteredUsers.get(identifier);
-      if (!user) {
-        throw new Error('User not found');
-      }
-      // Accept any 6-digit code in mock mode (or specifically "123456")
-      if (code !== '123456' && code.length !== 6) {
-        throw new Error('Invalid verification code');
-      }
-      user.verified = true;
-      console.log(`[MOCK AUTH] Verified: ${identifier}`);
-      return;
-    }
-
     await confirmSignUp({
       username: identifier,
       confirmationCode: code,
@@ -336,12 +282,6 @@ class AuthService {
    * @param identifier - User's email or phone number
    */
   async resendVerificationCode(identifier: string): Promise<void> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      console.log(`[MOCK AUTH] Resent verification code to: ${identifier}. Code: 123456`);
-      return;
-    }
-
     await resendSignUpCode({
       username: identifier,
     });
@@ -356,25 +296,6 @@ class AuthService {
    * @returns AuthTokens containing access, refresh, and id tokens
    */
   async login(identifier: string, password: string): Promise<AuthTokens> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      // In mock mode, accept any credentials (or check mock registry)
-      const user = mockRegisteredUsers.get(identifier);
-      if (user && user.password !== password) {
-        throw new Error('Incorrect username or password');
-      }
-      // Even if user isn't in mock registry, allow login for convenience
-      const tokens = generateMockTokens();
-      // Skip persistTokens in mock mode - SecureStore may not work on web
-      try {
-        await persistTokens(tokens);
-      } catch {
-        // Ignore persist errors in mock mode
-      }
-      console.log(`[MOCK AUTH] Logged in: ${identifier}`);
-      return tokens;
-    }
-
     console.log('[AUTH] Calling Cognito signIn with:', identifier);
     try {
       // Clear any stale Amplify session before signing in
@@ -428,16 +349,11 @@ class AuthService {
   async logout(): Promise<void> {
     cancelTokenRefresh();
 
-    if (!DEV_MOCK_AUTH) {
-      try {
-        // signOut({ global: true }) invalidates the session server-side (Req 3.2)
-        await signOut({ global: true });
-      } catch {
-        // Network error during logout - still clear local state (Req 3.3 equivalent)
-      }
-    } else {
-      await mockDelay();
-      console.log('[MOCK AUTH] Logged out');
+    try {
+      // signOut({ global: true }) invalidates the session server-side (Req 3.2)
+      await signOut({ global: true });
+    } catch {
+      // Network error during logout - still clear local state (Req 3.3 equivalent)
     }
 
     // Always clear local tokens regardless of network result (Req 3.1)
@@ -451,12 +367,6 @@ class AuthService {
    * @param identifier - User's registered email or phone number
    */
   async forgotPassword(identifier: string): Promise<void> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      console.log(`[MOCK AUTH] Forgot password code sent to: ${identifier}. Code: 123456`);
-      return;
-    }
-
     await resetPassword({
       username: identifier,
     });
@@ -475,20 +385,6 @@ class AuthService {
     code: string,
     newPassword: string
   ): Promise<void> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelay();
-      if (code !== '123456') {
-        throw new Error('Invalid verification code');
-      }
-      // Update password in mock registry if user exists
-      const user = mockRegisteredUsers.get(identifier);
-      if (user) {
-        user.password = newPassword;
-      }
-      console.log(`[MOCK AUTH] Password reset for: ${identifier}`);
-      return;
-    }
-
     await confirmResetPassword({
       username: identifier,
       confirmationCode: code,
@@ -517,13 +413,6 @@ class AuthService {
       if (persisted && persisted.expiresAt > Date.now()) {
         // Token still valid from SecureStore
         return persisted;
-      }
-
-      if (DEV_MOCK_AUTH) {
-        if (persisted) {
-          try { await clearPersistedTokens(); } catch {}
-        }
-        return null;
       }
 
       // Try to get session from Amplify (uses localStorage on web)

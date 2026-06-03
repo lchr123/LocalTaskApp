@@ -20,7 +20,7 @@ import ChatRoomScreen from '../screens/chat/ChatRoomScreen';
 
 export type ChatStackParamList = {
   ChatList: undefined;
-  ChatRoom: { sessionId: string; taskTitle: string };
+  ChatRoom: { sessionId: string; taskId: string; taskTitle: string; taskType?: string };
 };
 
 // ─── Stack Navigator ─────────────────────────────────────────────────────────

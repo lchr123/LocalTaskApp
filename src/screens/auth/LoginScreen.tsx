@@ -30,7 +30,6 @@ import {
   LoginByEmailData,
 } from '../../utils/validation';
 import { VALIDATION } from '../../utils/constants';
-import { DEV_MOCK_AUTH } from '../../config/aws-config';
 import { resetToMain } from '../../navigation/navigationRef';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -462,31 +461,6 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         >
           先逛逛
         </Button>
-
-        {/* DEV MODE: Quick Login Button */}
-        {DEV_MOCK_AUTH && (
-          <Button
-            mode="outlined"
-            onPress={() => {
-              // Directly set auth state - bypass all services
-              useAuthStore.setState({
-                tokens: {
-                  accessToken: 'dev-token',
-                  refreshToken: 'dev-refresh',
-                  idToken: 'dev-id',
-                  expiresAt: Date.now() + 3600000,
-                },
-                isAuthenticated: true,
-                isLoading: false,
-                error: null,
-              });
-            }}
-            style={styles.devButton}
-            icon="lightning-bolt"
-          >
-            ⚡ 开发模式 - 一键登录
-          </Button>
-        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -540,10 +514,5 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  devButton: {
-    marginTop: 24,
-    borderColor: '#FF9800',
-    borderWidth: 2,
   },
 });

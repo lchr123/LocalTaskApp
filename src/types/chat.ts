@@ -1,7 +1,10 @@
+import { TaskType } from './task';
+
 export interface ChatSession {
   id: string;
   taskId: string;
   taskTitle: string;
+  taskType?: TaskType;
   participantId: string;
   participantNickname: string;
   participantAvatarUrl?: string;

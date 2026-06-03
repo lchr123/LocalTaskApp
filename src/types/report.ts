@@ -5,6 +5,7 @@ export interface Report {
   reporterId: string;
   targetType: 'user' | 'task';
   targetId: string;
+  targetName?: string;
   type: ReportType;
   description: string;
   imageUrls: string[];

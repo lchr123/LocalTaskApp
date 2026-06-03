@@ -5,16 +5,6 @@
  * Replace placeholder values with actual AWS resource IDs before deployment.
  */
 
-/**
- * Development Mock Mode
- *
- * When true, all auth operations (register, login, verify, etc.) will be
- * simulated locally without calling AWS Cognito. Use this to test UI flows
- * without a real backend.
- *
- * Set to false when connecting to a real Cognito User Pool.
- */
-export const DEV_MOCK_AUTH = false;
 export const awsConfig = {
   Auth: {
     Cognito: {

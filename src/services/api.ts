@@ -16,7 +16,6 @@ import { fetchAuthSession, signOut } from 'aws-amplify/auth';
 import { navigateToAuth } from '../navigation/navigationRef';
 import { useAuthStore } from '../stores/authStore';
 import { TIMEOUTS } from '../utils/constants';
-import { DEV_MOCK_AUTH } from '../config/aws-config';
 
 /**
  * API base URL for the LocalTask backend
@@ -133,7 +132,6 @@ const apiClient: AxiosInstance = axios.create({
  * Request Interceptor
  *
  * Automatically attaches the Authorization Bearer Token to every request.
- * In DEV_MOCK_AUTH mode, sends a dummy token (backend MOCK_AUTH=true skips verification).
  * If no token is available, the request proceeds without auth header
  * (the server will return 401 which triggers the response interceptor).
  */

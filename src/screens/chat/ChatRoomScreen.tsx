@@ -28,18 +28,22 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { Text, Banner, ActivityIndicator } from 'react-native-paper';
+import { Text, Banner, ActivityIndicator, Chip, Icon } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { CommonActions } from '@react-navigation/native';
 import { ChatStackParamList } from '../../navigation/ChatStackNavigator';
 import { useChatStore } from '../../stores/chatStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { ChatMessage } from '../../types/chat';
+import { TaskType } from '../../types/task';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { ChatInput } from '../../components/chat/ChatInput';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { uploadService } from '../../services/uploadService';
+import { TASK_TYPE_LABELS } from '../../utils/constants';
 
 type Props = NativeStackScreenProps<ChatStackParamList, 'ChatRoom'>;
 
@@ -54,8 +58,8 @@ function generateLocalId(): string {
  * ChatRoomScreen is the main chat interface where users exchange messages.
  * Uses an inverted FlatList so newest messages appear at the bottom.
  */
-export default function ChatRoomScreen({ route }: Props) {
-  const { sessionId, taskTitle } = route.params;
+export default function ChatRoomScreen({ route, navigation }: Props) {
+  const { sessionId, taskId, taskTitle, taskType } = route.params;
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
   // Stable empty references to avoid creating new objects on each render
@@ -262,6 +266,42 @@ export default function ChatRoomScreen({ route }: Props) {
         </Banner>
       )}
 
+      {/* Task info header - tap to view task detail */}
+      <TouchableOpacity
+        style={styles.taskBanner}
+        onPress={() => {
+          navigation.dispatch(
+            CommonActions.navigate({
+              name: 'Home',
+              params: {
+                screen: 'TaskDetail',
+                params: { taskId },
+              },
+            })
+          );
+        }}
+        activeOpacity={0.7}
+        accessibilityLabel={`查看相关任务: ${taskTitle}`}
+        accessibilityHint="点击跳转到任务详情"
+        accessibilityRole="button"
+      >
+        <View style={styles.taskBannerContent}>
+          {taskType && (
+            <Chip
+              style={styles.taskBannerChip}
+              textStyle={styles.taskBannerChipText}
+              compact
+            >
+              {TASK_TYPE_LABELS[taskType as TaskType] || taskType}
+            </Chip>
+          )}
+          <Text style={styles.taskBannerTitle} numberOfLines={1}>
+            {taskTitle}
+          </Text>
+        </View>
+        <Icon source="chevron-right" size={20} color="#757575" />
+      </TouchableOpacity>
+
       {/* Message list (inverted FlatList) */}
       <FlatList
         ref={flatListRef}
@@ -300,6 +340,38 @@ const styles = StyleSheet.create({
   disconnectText: {
     fontSize: 13,
     color: '#E65100',
+  },
+  taskBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E0E0E0',
+  },
+  taskBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  taskBannerChip: {
+    height: 24,
+    marginRight: 8,
+    backgroundColor: '#E8F5E9',
+  },
+  taskBannerChipText: {
+    fontSize: 12,
+    color: '#2E7D32',
+    marginVertical: 0,
+    marginHorizontal: 4,
+  },
+  taskBannerTitle: {
+    fontSize: 14,
+    color: '#424242',
+    flex: 1,
   },
   messageList: {
     flex: 1,

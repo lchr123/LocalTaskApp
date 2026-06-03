@@ -70,7 +70,9 @@ export default function ChatListScreen() {
     (session: ChatSession) => {
       navigation.navigate('ChatRoom', {
         sessionId: session.id,
+        taskId: session.taskId,
         taskTitle: session.taskTitle,
+        taskType: session.taskType,
       });
     },
     [navigation]

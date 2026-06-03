@@ -298,7 +298,8 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                   disabled={isLoading}
                   style={{
                     width: '100%',
-                    padding: 16,
+                    maxWidth: '100%',
+                    padding: '12px 12px',
                     fontSize: 16,
                     borderRadius: 4,
                     border: errors.deadline
@@ -308,6 +309,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                     color: theme.colors.onSurface,
                     boxSizing: 'border-box' as any,
                     height: 56,
+                    overflow: 'hidden' as any,
                   }}
                   aria-label="期望完成时间选择器"
                 />
@@ -463,6 +465,7 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: 12,
+    overflow: 'hidden' as any,
   },
   fieldFooter: {
     flexDirection: 'row',

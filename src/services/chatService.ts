@@ -14,8 +14,6 @@ import apiClient from './api';
 import { ChatSession, ChatMessage } from '../types/chat';
 import { API_ENDPOINTS, PAGINATION, TIMEOUTS } from '../utils/constants';
 import { Platform } from 'react-native';
-import { DEV_MOCK_AUTH } from '../config/aws-config';
-import { MOCK_CHAT_SESSIONS, MOCK_MESSAGES, mockDelay as mockDelayFn } from './mockData';
 
 /**
  * WebSocket connection status
@@ -96,12 +94,6 @@ class ChatService {
    * @param token - Auth token for WebSocket authentication
    */
   connect(token: string): void {
-    if (DEV_MOCK_AUTH) {
-      // In mock mode, simulate connected state without real WebSocket
-      this.callbacks?.onConnectionStatusChange('connected');
-      return;
-    }
-
     if (this.ws?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -193,11 +185,6 @@ class ChatService {
    * Requirement 7.9: Sessions organized by task.
    */
   async fetchSessions(): Promise<SessionListResponse> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelayFn();
-      return { sessions: MOCK_CHAT_SESSIONS };
-    }
-
     const response = await apiClient.get<SessionListResponse>(
       API_ENDPOINTS.CHAT_SESSIONS
     );
@@ -210,12 +197,6 @@ class ChatService {
    * Requirement 7.5: Load history in reverse chronological order, 20 per page.
    */
   async fetchMessages(sessionId: string, page: number = 1): Promise<MessageListResponse> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelayFn();
-      const messages = MOCK_MESSAGES[sessionId] || [];
-      return { messages, page: 1, totalPages: 1 };
-    }
-
     const response = await apiClient.get<MessageListResponse>(
       API_ENDPOINTS.CHAT_MESSAGES(sessionId),
       { params: { page, pageSize: PAGINATION.CHAT_MESSAGE_PAGE_SIZE } }
@@ -232,23 +213,6 @@ class ChatService {
     type: 'text' | 'image',
     imageUrl?: string
   ): Promise<ChatMessage> {
-    if (DEV_MOCK_AUTH) {
-      await mockDelayFn();
-      const msg: ChatMessage = {
-        id: 'msg-' + Date.now(),
-        sessionId,
-        senderId: 'user-001',
-        content,
-        type,
-        imageUrl,
-        timestamp: new Date().toISOString(),
-        status: 'sent',
-      };
-      if (!MOCK_MESSAGES[sessionId]) MOCK_MESSAGES[sessionId] = [];
-      MOCK_MESSAGES[sessionId].push(msg);
-      return msg;
-    }
-
     const response = await apiClient.post<ChatMessage>(
       API_ENDPOINTS.CHAT_MESSAGES(sessionId),
       { content, type, imageUrl }
