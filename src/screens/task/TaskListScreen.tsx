@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
   filterBarWrapper: {
     flex: 1,
@@ -301,6 +302,7 @@ const styles = StyleSheet.create({
   helpButton: {
     paddingHorizontal: 12,
     paddingVertical: 10,
+    backgroundColor: '#fff',
   },
   centeredContainer: {
     flex: 1,
