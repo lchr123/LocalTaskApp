@@ -14,6 +14,7 @@ import { formatReward, formatRelativeTime } from '../../utils/formatters';
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { Task } from '../../types/task';
 import { useTaskStore } from '../../stores/taskStore';
+import { appDialog } from '../../stores/dialogStore';
 
 function getStatusLabel(status: string): string {
   switch (status) {
@@ -73,21 +74,16 @@ export default function MyTasksScreen() {
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string, label: string, skipConfirm = false) => {
     if (!skipConfirm) {
-      const confirmMsg = `确定要将任务标记为「${label}」吗？`;
-      if (Platform.OS === 'web') {
-        if (!window.confirm(confirmMsg)) return;
-      }
+      const confirmed = await appDialog.confirm({ message: `确定要将任务标记为「${label}」吗？` });
+      if (!confirmed) return;
     }
     setUpdatingTaskId(taskId);
     try {
       await apiClient.patch(`/tasks/${taskId}/status`, { status: newStatus });
       await fetchMyTasks();
-      // Also refresh the home page task list
       refreshTaskList();
     } catch {
-      if (Platform.OS === 'web') {
-        window.alert('操作失败，请重试');
-      }
+      await appDialog.alert({ message: '操作失败，请重试' });
     } finally {
       setUpdatingTaskId(null);
     }
@@ -183,12 +179,14 @@ export default function MyTasksScreen() {
                   <Button
                     mode="outlined"
                     compact
-                    onPress={() => {
-                      const msg = '取消与当前接单人的匹配后，任务状态将回滚至「待接单」，重新出现在任务大厅。确定继续吗？';
-                      if (Platform.OS === 'web') {
-                        if (!window.confirm(msg)) return;
+                    onPress={async () => {
+                      const confirmed = await appDialog.confirm({
+                        title: '取消匹配',
+                        message: '取消与当前接单人的匹配后，任务状态将回滚至「待接单」，重新出现在任务大厅。确定继续吗？',
+                      });
+                      if (confirmed) {
+                        handleStatusChange(item.id, 'open', '待接单', true);
                       }
-                      handleStatusChange(item.id, 'open', '待接单', true);
                     }}
                     disabled={updatingTaskId === item.id}
                     icon="account-remove"

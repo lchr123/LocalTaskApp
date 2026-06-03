@@ -140,7 +140,7 @@ export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
 // ─── Task Form Schema ────────────────────────────────────────────────────────
 
-const taskTypes = ['delivery', 'shopping', 'dog_walking', 'queuing', 'pickup'] as const;
+const taskTypes = ['delivery', 'pet_care', 'translation', 'moving', 'airport_transfer', 'childcare', 'other'] as const;
 
 /**
  * Location object schema with address and coordinates.
@@ -156,13 +156,11 @@ const locationSchema = z.object({
     .min(1, '地点为必填项')
     .max(VALIDATION.TASK_LOCATION_MAX, `地点最多${VALIDATION.TASK_LOCATION_MAX}个字符`),
   latitude: z
-    .number('请选择有效的位置')
-    .min(20, '请选择日本境内的位置')
-    .max(46, '请选择日本境内的位置'),
+    .number()
+    .refine((val) => val >= 20 && val <= 46, '请搜索确认地址后再提交'),
   longitude: z
-    .number('请选择有效的位置')
-    .min(122, '请选择日本境内的位置')
-    .max(154, '请选择日本境内的位置'),
+    .number()
+    .refine((val) => val >= 122 && val <= 154, '请搜索确认地址后再提交'),
 });
 
 export const createTaskFormSchema = z.object({

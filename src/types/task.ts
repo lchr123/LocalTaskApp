@@ -1,4 +1,4 @@
-export type TaskType = 'delivery' | 'shopping' | 'dog_walking' | 'queuing' | 'pickup';
+export type TaskType = 'delivery' | 'pet_care' | 'translation' | 'moving' | 'airport_transfer' | 'childcare' | 'other';
 export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Task {
@@ -49,8 +49,9 @@ export interface CreateTaskPayload {
 }
 
 export interface TaskFilter {
-  type?: TaskType;
+  type?: string;  // comma-separated types for multi-select filter
   minReward?: number;
   maxReward?: number;
   radius?: number;
+  sort?: 'distance' | 'reward' | 'newest' | 'deadline';
 }

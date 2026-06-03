@@ -23,6 +23,7 @@ import { formatRating } from '../../utils/formatters';
 import apiClient from '../../services/api';
 import { navigateToAuth, resetToMain } from '../../navigation/navigationRef';
 import { uploadService } from '../../services/uploadService';
+import { appDialog } from '../../stores/dialogStore';
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -86,9 +87,7 @@ export default function ProfileScreen() {
       const ExpoImagePicker = await import('expo-image-picker');
       const permResult = await ExpoImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permResult.granted) {
-        if (Platform.OS === 'web') {
-          window.alert('需要相册访问权限');
-        }
+        await appDialog.alert({ message: '需要相册访问权限' });
         return;
       }
 
@@ -112,13 +111,9 @@ export default function ProfileScreen() {
       const res = await apiClient.patch('/users/me', { avatarUrl: remoteUrl });
       setUser(res.data);
 
-      if (Platform.OS === 'web') {
-        window.alert('头像更新成功');
-      }
+      await appDialog.alert({ title: '成功', message: '头像更新成功' });
     } catch (error) {
-      if (Platform.OS === 'web') {
-        window.alert('头像更新失败，请重试');
-      }
+      await appDialog.alert({ message: '头像更新失败，请重试' });
     }
   }, [setUser]);
 
@@ -163,34 +158,20 @@ export default function ProfileScreen() {
    * - Invalidate session
    * - Navigate to login page
    */
-  const handleLogout = useCallback(() => {
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm('确定要退出登录吗？');
-      if (!confirmed) return;
-      setIsLoggingOut(true);
-      logout().finally(() => setIsLoggingOut(false));
-    } else {
-      Alert.alert(
-        '确认登出',
-        '确定要退出登录吗？',
-        [
-          { text: '取消', style: 'cancel' },
-          {
-            text: '确定',
-            style: 'destructive',
-            onPress: async () => {
-              setIsLoggingOut(true);
-              try {
-                await logout();
-                resetToMain();
-              } finally {
-                setIsLoggingOut(false);
-              }
-            },
-          },
-        ],
-        { cancelable: true }
-      );
+  const handleLogout = useCallback(async () => {
+    const confirmed = await appDialog.confirm({
+      title: '确认登出',
+      message: '确定要退出登录吗？',
+      confirmText: '确定',
+    });
+    if (!confirmed) return;
+
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      resetToMain();
+    } finally {
+      setIsLoggingOut(false);
     }
   }, [logout]);
 

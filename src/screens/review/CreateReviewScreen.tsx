@@ -26,6 +26,7 @@ import {
 import { Text, TextInput, Button, Snackbar, useTheme } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useReviewStore } from '../../stores/reviewStore';
+import { appDialog } from '../../stores/dialogStore';
 import StarRating from '../../components/review/StarRating';
 import { VALIDATION, REVIEW } from '../../utils/constants';
 
@@ -113,7 +114,7 @@ export default function CreateReviewScreen() {
       });
 
       if (Platform.OS === 'web') {
-        window.alert('✅ 评价提交成功！');
+        await appDialog.alert({ title: '成功', message: '✅ 评价提交成功！' });
         navigation.goBack();
       } else {
         setSuccessVisible(true);
@@ -138,25 +139,16 @@ export default function CreateReviewScreen() {
    * Show confirmation dialog before submitting.
    * Requirement 8.3: Correctness Property 3 - reviews are immutable once submitted.
    */
-  const handleSubmitPress = useCallback(() => {
+  const handleSubmitPress = useCallback(async () => {
     if (!validateForm()) return;
 
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        `您将为 ${revieweeNickname} 提交 ${rating} 星评价。评价提交后不可修改，确认提交吗？`
-      );
-      if (confirmed) {
-        performSubmit();
-      }
-    } else {
-      Alert.alert(
-        '确认提交评价',
-        `您将为 ${revieweeNickname} 提交 ${rating} 星评价。评价提交后不可修改，确认提交吗？`,
-        [
-          { text: '取消', style: 'cancel' },
-          { text: '确认提交', onPress: performSubmit },
-        ]
-      );
+    const confirmed = await appDialog.confirm({
+      title: '确认提交评价',
+      message: `您将为 ${revieweeNickname} 提交 ${rating} 星评价。评价提交后不可修改，确认提交吗？`,
+      confirmText: '确认提交',
+    });
+    if (confirmed) {
+      performSubmit();
     }
   }, [validateForm, rating, revieweeNickname, performSubmit]);
 

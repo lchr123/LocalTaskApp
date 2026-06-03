@@ -139,6 +139,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         type: filter.type,
         minReward: filter.minReward,
         maxReward: filter.maxReward,
+        sort: filter.sort,
         page: 1,
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
@@ -179,6 +180,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         type: filter.type,
         minReward: filter.minReward,
         maxReward: filter.maxReward,
+        sort: filter.sort,
         page: nextPage,
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
@@ -229,6 +231,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         type: filter.type,
         minReward: filter.minReward,
         maxReward: filter.maxReward,
+        sort: filter.sort,
         page: 1,
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
@@ -422,6 +425,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     set((state) => ({
       filter: { ...state.filter, ...newFilter },
     }));
+    // Re-fetch tasks with updated filter
+    get().fetchTasks();
   },
 
   /**

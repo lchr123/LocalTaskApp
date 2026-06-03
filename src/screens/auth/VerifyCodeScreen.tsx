@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 import { useAuthStore } from '../../stores/authStore';
+import { appDialog } from '../../stores/dialogStore';
 import { VALIDATION } from '../../utils/constants';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
 
       // Registration complete! Navigate to Login.
       if (Platform.OS === 'web') {
-        window.alert('注册成功 🎉\n账号验证完成，请使用您的邮箱和密码登录。');
+        await appDialog.alert({ title: '注册成功 🎉', message: '账号验证完成，请使用您的邮箱和密码登录。' });
         navigation.navigate('Login');
       } else {
         Alert.alert(
@@ -212,7 +213,7 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
       // Check if user is already confirmed (came from re-registration flow)
       if (isAlreadyConfirmedError(error)) {
         if (Platform.OS === 'web') {
-          window.alert('该账号已验证，请直接登录。');
+          await appDialog.alert({ message: '该账号已验证，请直接登录。' });
           navigation.navigate('Login');
         } else {
           Alert.alert(

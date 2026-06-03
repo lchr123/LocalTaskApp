@@ -47,6 +47,7 @@ export interface FetchTasksParams {
   type?: string;
   minReward?: number;
   maxReward?: number;
+  sort?: string;
   page?: number;
   pageSize?: number;
 }
@@ -96,6 +97,9 @@ class TaskService {
     }
     if (maxReward !== undefined) {
       queryParams.maxReward = maxReward;
+    }
+    if (params.sort) {
+      queryParams.sort = params.sort;
     }
 
     const response = await apiClient.get<TaskListResponse>(

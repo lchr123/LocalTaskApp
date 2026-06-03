@@ -24,13 +24,14 @@ import { Text, Icon, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTaskStore } from '../../stores/taskStore';
-import { Task } from '../../types/task';
+import { Task, TaskType } from '../../types/task';
 import { TaskCard } from '../../components/task/TaskCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorRetry } from '../../components/common/ErrorRetry';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { HomeStackParamList } from '../../navigation/HomeStackNavigator';
-import { PAGINATION } from '../../utils/constants';
+import { PAGINATION, TASK_TYPE_LABELS } from '../../utils/constants';
+import FilterBar from '../../components/task/FilterBar';
 
 type TaskListNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'TaskList'>;
 
@@ -49,10 +50,12 @@ export default function TaskListScreen() {
     hasMore,
     userLocation,
     locationDenied,
+    filter,
     initLocation,
     fetchTasks,
     loadMore,
     refresh,
+    setFilter,
     clearError,
   } = useTaskStore();
 
@@ -221,7 +224,14 @@ export default function TaskListScreen() {
 
   return (
     <View style={styles.container} accessibilityLabel="任务列表">
-      <FlatList<Task>
+      <View style={styles.rangeHint}>
+        <Text style={styles.rangeHintText}>📍 显示范围：周围 100km 内的任务</Text>
+      </View>
+
+      {/* Filter & Sort Bar */}
+      <FilterBar filter={filter} setFilter={setFilter} />
+
+      <FlatList
         data={tasks}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -257,6 +267,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  rangeHint: {
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  rangeHintText: {
+    fontSize: 13,
+    color: '#1565C0',
+    textAlign: 'center',
   },
   centeredContainer: {
     flex: 1,

@@ -50,10 +50,12 @@ interface TaskFormProps {
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'delivery', label: TASK_TYPE_LABELS.delivery },
-  { value: 'shopping', label: TASK_TYPE_LABELS.shopping },
-  { value: 'dog_walking', label: TASK_TYPE_LABELS.dog_walking },
-  { value: 'queuing', label: TASK_TYPE_LABELS.queuing },
-  { value: 'pickup', label: TASK_TYPE_LABELS.pickup },
+  { value: 'pet_care', label: TASK_TYPE_LABELS.pet_care },
+  { value: 'translation', label: TASK_TYPE_LABELS.translation },
+  { value: 'moving', label: TASK_TYPE_LABELS.moving },
+  { value: 'airport_transfer', label: TASK_TYPE_LABELS.airport_transfer },
+  { value: 'childcare', label: TASK_TYPE_LABELS.childcare },
+  { value: 'other', label: TASK_TYPE_LABELS.other },
 ];
 
 // ─── Component ───────────────────────────────────────────────────────────────

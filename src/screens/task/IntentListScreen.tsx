@@ -18,6 +18,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { useTaskStore } from '../../stores/taskStore';
 import { useChatStore } from '../../stores/chatStore';
+import { appDialog } from '../../stores/dialogStore';
 import { Intent } from '../../types/task';
 import { IntentCard } from '../../components/task/IntentCard';
 import { LoadingIndicator, ErrorRetry, EmptyState } from '../../components/common';
@@ -52,39 +53,25 @@ export default function IntentListScreen({ route }: Props) {
    * Requirement 6.5: Confirm before selecting a helper.
    */
   const handleSelect = useCallback(
-    (intent: Intent) => {
-      const doSelect = async () => {
-        setIsSelecting(true);
-        try {
-          await selectHelper(taskId, intent.helperId);
-          // Re-fetch intents to show updated statuses
-          await fetchIntents(taskId);
-          // Refresh chat sessions so the new session appears in chat list
-          await fetchSessions();
-          setSnackbarMessage(`已选择 ${intent.helperNickname} 为帮手，对话已创建`);
-          setSnackbarVisible(true);
-        } catch {
-          setSnackbarMessage('选择帮手失败，请重试');
-          setSnackbarVisible(true);
-        } finally {
-          setIsSelecting(false);
-        }
-      };
+    async (intent: Intent) => {
+      const confirmed = await appDialog.confirm({
+        title: '确认选择',
+        message: `确定选择 ${intent.helperNickname} 作为帮手吗？选择后任务将进入进行中状态。`,
+      });
+      if (!confirmed) return;
 
-      if (Platform.OS === 'web') {
-        const confirmed = window.confirm(
-          `确定选择 ${intent.helperNickname} 作为帮手吗？选择后任务将进入进行中状态。`
-        );
-        if (confirmed) doSelect();
-      } else {
-        Alert.alert(
-          '确认选择',
-          `确定选择 ${intent.helperNickname} 作为帮手吗？选择后任务将进入进行中状态。`,
-          [
-            { text: '取消', style: 'cancel' },
-            { text: '确认', onPress: doSelect },
-          ]
-        );
+      setIsSelecting(true);
+      try {
+        await selectHelper(taskId, intent.helperId);
+        await fetchIntents(taskId);
+        await fetchSessions();
+        setSnackbarMessage(`已选择 ${intent.helperNickname} 为帮手，对话已创建`);
+        setSnackbarVisible(true);
+      } catch {
+        setSnackbarMessage('选择帮手失败，请重试');
+        setSnackbarVisible(true);
+      } finally {
+        setIsSelecting(false);
       }
     },
     [taskId, selectHelper, fetchIntents]

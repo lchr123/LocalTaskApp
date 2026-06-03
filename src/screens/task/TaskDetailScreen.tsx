@@ -34,6 +34,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { useTaskStore } from '../../stores/taskStore';
 import { useAuthStore } from '../../stores/authStore';
+import { appDialog } from '../../stores/dialogStore';
 import { formatReward, formatRelativeTime } from '../../utils/formatters';
 import { TASK_TYPE_LABELS, VALIDATION } from '../../utils/constants';
 
@@ -382,11 +383,9 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
         <View style={styles.bottomButtonContainer}>
           <Button
             mode="contained"
-            onPress={() => {
+            onPress={async () => {
               if (!isLoggedIn) {
-                if (Platform.OS === 'web') {
-                  window.alert('请先登录后再提交意向');
-                }
+                await appDialog.alert({ message: '请先登录后再提交意向' });
                 (navigation as any).navigate('Auth');
                 return;
               }

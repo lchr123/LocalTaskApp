@@ -5,11 +5,13 @@ import { ReportType } from '../types/report';
  * Task type labels (Chinese)
  */
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  delivery: '送文件',
-  shopping: '买东西',
-  dog_walking: '遛狗',
-  queuing: '排队',
-  pickup: '取件',
+  delivery: '跑腿代办',
+  pet_care: '宠物照护',
+  translation: '翻译陪同',
+  moving: '搬家协助',
+  airport_transfer: '接机送机',
+  childcare: '育儿协助',
+  other: '其他',
 };
 
 /**
@@ -105,8 +107,8 @@ export const VALIDATION = {
  * Location defaults
  */
 export const LOCATION = {
-  DEFAULT_RADIUS_KM: 10,
-  MAX_RADIUS_KM: 50,
+  DEFAULT_RADIUS_KM: 100,
+  MAX_RADIUS_KM: 100,
 } as const;
 
 /**

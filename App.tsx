@@ -28,6 +28,7 @@ import { useAppInitialization } from './src/hooks/useAppInitialization';
 import { ErrorBoundary } from './src/components/common/ErrorBoundary';
 import { NetworkStatusBar } from './src/components/common/NetworkStatusBar';
 import RootNavigator from './src/navigation/RootNavigator';
+import AppDialog from './src/components/common/AppDialog';
 
 // ─── Theme Configuration ─────────────────────────────────────────────────────
 
@@ -66,6 +67,7 @@ export default function App() {
     <PaperProvider theme={theme}>
       <ErrorBoundary>
         <RootNavigator />
+        <AppDialog />
         <NetworkStatusBar />
         <StatusBar style="auto" />
       </ErrorBoundary>

@@ -172,23 +172,46 @@ export default function LocationPicker({
         disabled={disabled || isGeocoding}
         error={!!displayError}
         left={<TextInput.Icon icon="map-marker" />}
-        right={
-          <TextInput.Icon
-            icon="magnify"
-            onPress={handleAddressSubmit}
-            disabled={disabled || isGeocoding || !addressInput.trim()}
-            accessibilityLabel="搜索地址"
-          />
-        }
         maxLength={100}
         accessibilityLabel="地址输入框"
-        accessibilityHint="输入日本格式地址后按回车或点击搜索图标进行地理编码"
+        accessibilityHint="输入日本格式地址后点击搜索按钮进行地理编码"
       />
 
-      {/* Coordinate display (confirmation that geocoding worked) */}
+      {/* Search + Use Current Location buttons in one row */}
+      <View style={styles.buttonRow}>
+        <Button
+          mode="contained-tonal"
+          onPress={handleAddressSubmit}
+          loading={isGeocoding}
+          disabled={disabled || isGeocoding || !addressInput.trim()}
+          icon="magnify"
+          style={styles.searchButton}
+          accessibilityLabel="搜索地址"
+        >
+          搜索地址
+        </Button>
+        <Button
+          mode="outlined"
+          onPress={handleUseCurrentLocation}
+          loading={isLoadingLocation}
+          disabled={disabled || isLoadingLocation || isGeocoding}
+          icon="crosshairs-gps"
+          style={styles.currentLocationButton}
+          accessibilityLabel="使用当前位置"
+        >
+          使用当前位置
+        </Button>
+      </View>
+
+      {/* Coordinate display */}
       {hasCoordinates && !displayError && (
         <HelperText type="info" visible accessibilityLabel="坐标确认">
           ✓ 坐标已确认: {value!.latitude.toFixed(4)}, {value!.longitude.toFixed(4)}
+        </HelperText>
+      )}
+      {!hasCoordinates && !displayError && (
+        <HelperText type="info" visible accessibilityLabel="位置未确定提示">
+          请输入地址并搜索，或使用当前位置来确定坐标
         </HelperText>
       )}
 
@@ -202,20 +225,6 @@ export default function LocationPicker({
           {displayError}
         </HelperText>
       )}
-
-      {/* Use Current Location Button (Requirement 4A.8) */}
-      <Button
-        mode="outlined"
-        onPress={handleUseCurrentLocation}
-        loading={isLoadingLocation}
-        disabled={disabled || isLoadingLocation || isGeocoding}
-        icon="crosshairs-gps"
-        style={styles.currentLocationButton}
-        accessibilityLabel="使用当前位置按钮"
-        accessibilityHint="点击使用当前GPS位置作为任务地点"
-      >
-        使用当前位置
-      </Button>
     </View>
   );
 }
@@ -234,7 +243,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  currentLocationButton: {
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginTop: 8,
+  },
+  searchButton: {
+    flex: 1,
+  },
+  currentLocationButton: {
+    flex: 1,
   },
 });
