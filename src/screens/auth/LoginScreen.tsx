@@ -31,6 +31,7 @@ import {
 } from '../../utils/validation';
 import { VALIDATION } from '../../utils/constants';
 import { resetToMain } from '../../navigation/navigationRef';
+import { Image } from 'react-native';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -89,7 +90,8 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const theme = useTheme();
   const { login, isLoading, clearError } = useAuthStore();
 
-  const [method, setMethod] = useState<string>('phone');
+  // default
+  const [method, setMethod] = useState<string>('email');
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLockedOut, setIsLockedOut] = useState(false);
@@ -198,19 +200,30 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Title */}
+        <Image
+          source={require('../../../assets/favicon.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text variant="headlineMedium" style={styles.title}>
           欢迎回来
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          请登录您的账号
+          在Locally Helper 连接生活需求与帮手，让本地互助更简单
         </Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>
+          ⚠️目前仅支持邮箱登录
+        </Text>
+        {/* <Text variant="bodyMedium" style={styles.subtitle}>
+          请登录您的账号
+        </Text> */}
 
         {/* Method Selector */}
         <SegmentedButtons
           value={method}
           onValueChange={handleMethodChange}
           buttons={[
-            { value: 'phone', label: '手机号', icon: 'phone' },
+            { value: 'phone', label: '手机号', icon: 'phone', disabled: true },
             { value: 'email', label: '邮箱', icon: 'email' },
           ]}
           style={styles.segmentedButtons}
@@ -475,7 +488,13 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 12,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    alignSelf: 'center',
+    marginBottom: 16,
   },
   title: {
     fontWeight: 'bold',

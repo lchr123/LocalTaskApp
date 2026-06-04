@@ -506,7 +506,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingTop: 48,
+    paddingTop: 12,
   },
   userSection: {
     alignItems: 'center',

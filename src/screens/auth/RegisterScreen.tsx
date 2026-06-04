@@ -36,6 +36,7 @@ import {
   RegisterByPhoneData,
   RegisterByEmailData,
 } from '../../utils/validation';
+import { Image } from 'react-native';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -115,7 +116,8 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const theme = useTheme();
   const { register: registerUser, isLoading, clearError } = useAuthStore();
 
-  const [method, setMethod] = useState<string>('phone');
+  // default
+  const [method, setMethod] = useState<string>('email');
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -226,19 +228,27 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
         keyboardShouldPersistTaps="handled"
       >
         {/* Title */}
+        <Image
+          source={require('../../../assets/favicon.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text variant="headlineMedium" style={styles.title}>
           创建账号
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          选择手机号或邮箱注册
+          ⚠️目前仅支持邮箱注册
         </Text>
+        {/* <Text variant="bodyMedium" style={styles.subtitle}>
+          选择手机号或邮箱注册
+        </Text> */}
 
         {/* Method Selector */}
         <SegmentedButtons
           value={method}
           onValueChange={handleMethodChange}
           buttons={[
-            { value: 'phone', label: '手机号', icon: 'phone' },
+            { value: 'phone', label: '手机号', icon: 'phone', disabled: true },
             { value: 'email', label: '邮箱', icon: 'email' },
           ]}
           style={styles.segmentedButtons}
@@ -509,10 +519,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  logo: {
+    width: 72,
+    height: 72,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 12,
   },
   title: {
     fontWeight: 'bold',

@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 12,
   },
   title: {
     fontWeight: 'bold',
