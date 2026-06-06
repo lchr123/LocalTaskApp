@@ -17,8 +17,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { TextInput, Button, HelperText, Text, useTheme } from 'react-native-paper';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Button, HelperText } from 'react-native-paper';
 import { locationService } from '../../services/locationService';
 import {
   geocodeAddress,
@@ -53,8 +53,6 @@ export default function LocationPicker({
   disabled = false,
   error,
 }: LocationPickerProps) {
-  const theme = useTheme();
-
   const [addressInput, setAddressInput] = useState(value?.address || '');
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
@@ -82,7 +80,7 @@ export default function LocationPicker({
     setIsGeocoding(false);
 
     if (!result) {
-      setGeocodeError('无法识别该地址，请检查输入或在地图上直接选择位置');
+      setGeocodeError('无法识别该地址，请检查输入后重试');
       return;
     }
 
@@ -145,19 +143,14 @@ export default function LocationPicker({
   }, [disabled, onChange]);
 
   const displayError = geocodeError || error;
-  const hasCoordinates = value?.latitude && value?.longitude;
+  const hasValidCoordinates =
+    value?.latitude !== undefined &&
+    value?.longitude !== undefined &&
+    value.latitude !== 0 &&
+    value.longitude !== 0;
 
   return (
     <View style={styles.container} accessibilityLabel="地点选择器">
-      {/* Web platform notice (map not available on web) */}
-      {Platform.OS === 'web' && (
-        <View style={[styles.webMapPlaceholder, { backgroundColor: theme.colors.surfaceVariant }]}>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center' }}>
-            🗺️ 地图仅在手机端可用{'\n'}请输入地址或使用当前位置
-          </Text>
-        </View>
-      )}
-
       {/* Address Text Input (Requirement 4A.1, 4A.4) */}
       <TextInput
         label="地址 *"
@@ -204,14 +197,14 @@ export default function LocationPicker({
       </View>
 
       {/* Coordinate display */}
-      {hasCoordinates && !displayError && (
+      {hasValidCoordinates && !displayError && (
         <HelperText type="info" visible accessibilityLabel="坐标确认">
           ✓ 坐标已确认: {value!.latitude.toFixed(4)}, {value!.longitude.toFixed(4)}
         </HelperText>
       )}
-      {!hasCoordinates && !displayError && (
+      {!hasValidCoordinates && !displayError && (
         <HelperText type="info" visible accessibilityLabel="位置未确定提示">
-          请输入地址并搜索，或使用当前位置来确定坐标
+          尚未确定坐标，请输入地址并点击搜索，或使用当前位置
         </HelperText>
       )}
 
@@ -234,14 +227,6 @@ export default function LocationPicker({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 12,
-  },
-  webMapPlaceholder: {
-    height: 100,
-    borderRadius: 8,
-    marginBottom: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
   },
   buttonRow: {
     flexDirection: 'row',

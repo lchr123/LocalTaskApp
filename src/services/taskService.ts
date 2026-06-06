@@ -172,6 +172,21 @@ class TaskService {
     );
     return response.data;
   }
+
+  /**
+   * Update task details (description, reward, location, deadline).
+   * Only allowed for tasks in 'open' status by the poster.
+   */
+  async updateTask(
+    taskId: string,
+    payload: { description?: string; reward?: number; location?: { address: string; latitude: number; longitude: number }; deadline?: string }
+  ): Promise<Task> {
+    const response = await apiClient.patch<Task>(
+      API_ENDPOINTS.TASK_DETAIL(taskId),
+      payload
+    );
+    return response.data;
+  }
 }
 
 export const taskService = new TaskService();

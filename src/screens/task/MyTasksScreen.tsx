@@ -149,18 +149,30 @@ export default function MyTasksScreen() {
             {/* Status action buttons */}
             <View style={styles.actionRow}>
               {item.status === 'open' && (
-                <Button
-                  mode="outlined"
-                  compact
-                  onPress={() => handleStatusChange(item.id, 'cancelled', '已取消')}
-                  loading={updatingTaskId === item.id}
-                  disabled={updatingTaskId === item.id}
-                  icon="close"
-                  style={styles.actionButton}
-                  textColor="#f44336"
-                >
-                  取消任务
-                </Button>
+                <>
+                  <Button
+                    mode="contained-tonal"
+                    compact
+                    onPress={() => (navigation as any).navigate('EditTask', { taskId: item.id })}
+                    disabled={updatingTaskId === item.id}
+                    icon="pencil"
+                    style={styles.actionButton}
+                  >
+                    编辑
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    compact
+                    onPress={() => handleStatusChange(item.id, 'cancelled', '已取消')}
+                    loading={updatingTaskId === item.id}
+                    disabled={updatingTaskId === item.id}
+                    icon="close"
+                    style={styles.actionButton}
+                    textColor="#f44336"
+                  >
+                    取消任务
+                  </Button>
+                </>
               )}
               {item.status === 'in_progress' && (
                 <>

@@ -20,6 +20,7 @@ import {
   RefreshControl,
   ListRenderItemInfo,
   TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { Text, Icon, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -169,23 +170,36 @@ export default function TaskListScreen() {
   /**
    * Requirement 5.6: Handle location permission denied.
    * Show a prompt to enable location services.
+   * Web platforms show browser-specific instructions since re-requesting won't trigger a prompt.
    */
   if (locationDenied) {
+    const isWeb = Platform.OS === 'web';
+
     return (
       <View style={styles.centeredContainer} accessibilityLabel="定位权限提示">
         <Icon source="map-marker-off" size={64} color="#BDBDBD" />
         <Text style={styles.permissionTitle}>需要定位权限</Text>
-        <Text style={styles.permissionDescription}>
-          请开启定位权限以查看附近的任务
-        </Text>
-        <Button
-          mode="contained"
-          onPress={handleRetryLocation}
-          style={styles.permissionButton}
-          accessibilityLabel="重新获取定位权限"
-        >
-          重新获取权限
-        </Button>
+        {isWeb ? (
+          <>
+            <Text style={styles.permissionDescription}>
+              浏览器已阻止定位权限，请在浏览器设置中允许本站访问位置信息，然后刷新页面重试。
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.permissionDescription}>
+              请开启定位权限以查看附近的任务
+            </Text>
+            <Button
+              mode="contained"
+              onPress={handleRetryLocation}
+              style={styles.permissionButton}
+              accessibilityLabel="重新获取定位权限"
+            >
+              重新获取权限
+            </Button>
+          </>
+        )}
       </View>
     );
   }
