@@ -59,13 +59,14 @@ function processQueue(error: unknown, token: string | null): void {
 }
 
 /**
- * Retrieve the current access token from Amplify Auth session.
+ * Retrieve the current ID token from Amplify Auth session.
+ * ID Token contains user claims (email, phone) needed by the backend.
  * Returns null if no valid session exists.
  */
 async function getAccessToken(): Promise<string | null> {
   try {
     const session = await fetchAuthSession();
-    const token = session.tokens?.accessToken?.toString();
+    const token = session.tokens?.idToken?.toString();
     return token ?? null;
   } catch {
     return null;
@@ -73,14 +74,14 @@ async function getAccessToken(): Promise<string | null> {
 }
 
 /**
- * Attempt to refresh the access token via Amplify Auth.
+ * Attempt to refresh the token via Amplify Auth.
  * Forces a token refresh by passing forceRefresh option.
- * Returns the new access token or null if refresh fails.
+ * Returns the new ID token or null if refresh fails.
  */
 async function refreshAccessToken(): Promise<string | null> {
   try {
     const session = await fetchAuthSession({ forceRefresh: true });
-    const token = session.tokens?.accessToken?.toString();
+    const token = session.tokens?.idToken?.toString();
     return token ?? null;
   } catch {
     return null;
