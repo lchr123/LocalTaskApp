@@ -181,7 +181,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                     mode="outlined"
                     editable={false}
                     error={!!errors.type}
-                    right={<TextInput.Icon icon="chevron-down" />}
+                    right={<TextInput.Icon icon="chevron-down" onPress={() => setTypeMenuVisible(true)} />}
                     pointerEvents="none"
                     accessibilityLabel="任务类型"
                   />
@@ -287,32 +287,48 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
           <View style={styles.fieldContainer}>
             {Platform.OS === 'web' ? (
               <>
-                <Text variant="bodySmall" style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
-                  期望完成时间 *
+                <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
+                  ⏰ 期望完成时间 *
                 </Text>
-                <input
-                  type="datetime-local"
-                  value={value ? value.slice(0, 16) : ''}
-                  onChange={(e: any) => onChange(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                  disabled={isLoading}
-                  style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    padding: '12px 12px',
-                    fontSize: 16,
-                    borderRadius: 4,
-                    border: errors.deadline
-                      ? `2px solid ${theme.colors.error}`
-                      : `1px solid ${theme.colors.outline}`,
-                    backgroundColor: theme.colors.surface,
-                    color: theme.colors.onSurface,
-                    boxSizing: 'border-box' as any,
-                    height: 56,
-                    overflow: 'hidden' as any,
-                  }}
-                  aria-label="期望完成时间选择器"
-                />
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="date"
+                    value={value ? value.slice(0, 10) : ''}
+                    onChange={(e: any) => {
+                      const timeStr = value ? value.slice(11, 16) : '12:00';
+                      onChange(`${e.target.value}T${timeStr}`);
+                    }}
+                    min={new Date().toISOString().slice(0, 10)}
+                    disabled={isLoading}
+                    style={{
+                      flex: 1,
+                      padding: '10px 12px',
+                      borderRadius: 6,
+                      border: errors.deadline ? `2px solid ${theme.colors.error}` : `1px solid #E0E0E0`,
+                      fontSize: 14,
+                      backgroundColor: '#fff',
+                    }}
+                    aria-label="选择日期"
+                  />
+                  <input
+                    type="time"
+                    value={value ? value.slice(11, 16) : ''}
+                    onChange={(e: any) => {
+                      const dateStr = value ? value.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                      onChange(`${dateStr}T${e.target.value}`);
+                    }}
+                    disabled={isLoading}
+                    style={{
+                      flex: 1,
+                      padding: '10px 12px',
+                      borderRadius: 6,
+                      border: errors.deadline ? `2px solid ${theme.colors.error}` : `1px solid #E0E0E0`,
+                      fontSize: 14,
+                      backgroundColor: '#fff',
+                    }}
+                    aria-label="选择时间"
+                  />
+                </View>
               </>
             ) : (
               <>

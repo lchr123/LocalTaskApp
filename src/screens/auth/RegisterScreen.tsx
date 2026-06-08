@@ -165,7 +165,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
 
       try {
         await registerUser(data.phone, data.password, 'phone');
-        navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone' });
+        navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone', password: data.password });
       } catch (error: unknown) {
         // Check if user already exists - try to resend verification code
         if (isUserExistsError(error)) {
@@ -173,7 +173,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
             await authService.resendVerificationCode(data.phone);
             // Resend succeeded - navigate to verify page regardless of user state
             // If user is already verified, they'll get an error when entering the code
-            navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone' });
+            navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone', password: data.password });
           } catch {
             setServerError('该账号已注册，请直接登录');
           }
@@ -195,13 +195,13 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
 
       try {
         await registerUser(data.email, data.password, 'email');
-        navigation.navigate('VerifyCode', { identifier: data.email, method: 'email' });
+        navigation.navigate('VerifyCode', { identifier: data.email, method: 'email', password: data.password });
       } catch (error: unknown) {
         // Check if user already exists - try to resend verification code
         if (isUserExistsError(error)) {
           try {
             await authService.resendVerificationCode(data.email);
-            navigation.navigate('VerifyCode', { identifier: data.email, method: 'email' });
+            navigation.navigate('VerifyCode', { identifier: data.email, method: 'email', password: data.password });
           } catch {
             setServerError('该账号已注册，请直接登录');
           }

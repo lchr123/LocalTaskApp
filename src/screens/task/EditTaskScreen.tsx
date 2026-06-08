@@ -304,31 +304,48 @@ export default function EditTaskScreen({ route, navigation }: Props) {
         <View style={styles.fieldContainer}>
           {Platform.OS === 'web' ? (
             <>
-              <Text variant="bodySmall" style={{ marginBottom: 4, color: theme.colors.onSurfaceVariant }}>
-                期望完成时间 *
+              <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
+                ⏰ 期望完成时间 *
               </Text>
-              <input
-                type="datetime-local"
-                value={deadline}
-                onChange={(e: any) => setDeadline(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-                disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  maxWidth: '100%',
-                  padding: '12px 12px',
-                  fontSize: 16,
-                  borderRadius: 4,
-                  border: deadlineError
-                    ? `2px solid ${theme.colors.error}`
-                    : `1px solid ${theme.colors.outline}`,
-                  backgroundColor: theme.colors.surface,
-                  color: theme.colors.onSurface,
-                  boxSizing: 'border-box' as any,
-                  height: 56,
-                }}
-                aria-label="期望完成时间选择器"
-              />
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={deadline ? deadline.slice(0, 10) : ''}
+                  onChange={(e: any) => {
+                    const timeStr = deadline ? deadline.slice(11, 16) : '12:00';
+                    setDeadline(`${e.target.value}T${timeStr}`);
+                  }}
+                  min={new Date().toISOString().slice(0, 10)}
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    borderRadius: 6,
+                    border: deadlineError ? `2px solid ${theme.colors.error}` : `1px solid #E0E0E0`,
+                    fontSize: 14,
+                    backgroundColor: '#fff',
+                  }}
+                  aria-label="选择日期"
+                />
+                <input
+                  type="time"
+                  value={deadline ? deadline.slice(11, 16) : ''}
+                  onChange={(e: any) => {
+                    const dateStr = deadline ? deadline.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                    setDeadline(`${dateStr}T${e.target.value}`);
+                  }}
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    borderRadius: 6,
+                    border: deadlineError ? `2px solid ${theme.colors.error}` : `1px solid #E0E0E0`,
+                    fontSize: 14,
+                    backgroundColor: '#fff',
+                  }}
+                  aria-label="选择时间"
+                />
+              </View>
             </>
           ) : (
             <>

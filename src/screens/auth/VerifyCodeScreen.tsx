@@ -43,6 +43,7 @@ interface VerifyCodeScreenProps {
     params: {
       identifier: string;
       method: 'email' | 'phone';
+      password?: string;
     };
   };
 }
@@ -51,10 +52,11 @@ interface VerifyCodeScreenProps {
 
 export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreenProps) {
   const theme = useTheme();
-  const { identifier, method } = route.params;
+  const { identifier, method, password } = route.params;
   const {
     confirmRegistration,
     resendVerificationCode,
+    login,
     isLoading,
     clearError,
   } = useAuthStore();
@@ -193,7 +195,22 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
       // Confirm registration with Cognito
       await confirmRegistration(identifier, fullCode);
 
-      // Registration complete! Navigate to Login.
+      // Auto-login after successful verification
+      if (password) {
+        try {
+          await login(identifier, password);
+          if (Platform.OS === 'web') {
+            await appDialog.alert({ title: '注册成功 🎉', message: '验证完成，已自动登录。' });
+          } else {
+            Alert.alert('注册成功 🎉', '验证完成，已自动登录。');
+          }
+          return; // login will trigger navigation to home via auth state change
+        } catch {
+          // Auto-login failed, fall back to manual login
+        }
+      }
+
+      // Fallback: navigate to login page
       if (Platform.OS === 'web') {
         await appDialog.alert({ title: '注册成功 🎉', message: '账号验证完成，请使用您的邮箱和密码登录。' });
         navigation.navigate('Login');
@@ -212,6 +229,21 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
 
       // Check if user is already confirmed (came from re-registration flow)
       if (isAlreadyConfirmedError(error)) {
+        // Try auto-login for already confirmed users
+        if (password) {
+          try {
+            await login(identifier, password);
+            if (Platform.OS === 'web') {
+              await appDialog.alert({ message: '该账号已验证，已自动登录。' });
+            } else {
+              Alert.alert('账号已验证', '已自动登录。');
+            }
+            return;
+          } catch {
+            // Auto-login failed, fall back to manual
+          }
+        }
+
         if (Platform.OS === 'web') {
           await appDialog.alert({ message: '该账号已验证，请直接登录。' });
           navigation.navigate('Login');
