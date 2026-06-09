@@ -23,6 +23,7 @@ import {
 import { Button, Text, useTheme } from 'react-native-paper';
 import { useAuthStore } from '../../stores/authStore';
 import { appDialog } from '../../stores/dialogStore';
+import { resetToMain } from '../../navigation/navigationRef';
 import { VALIDATION } from '../../utils/constants';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -204,7 +205,8 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
           } else {
             Alert.alert('注册成功 🎉', '验证完成，已自动登录。');
           }
-          return; // login will trigger navigation to home via auth state change
+          resetToMain();
+          return;
         } catch {
           // Auto-login failed, fall back to manual login
         }
@@ -238,6 +240,7 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
             } else {
               Alert.alert('账号已验证', '已自动登录。');
             }
+            resetToMain();
             return;
           } catch {
             // Auto-login failed, fall back to manual
