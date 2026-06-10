@@ -4,6 +4,7 @@
  * Displays a helper's intent information in a card format.
  * Shows helper nickname, average rating (stars), completed task count,
  * and optional message. Includes a "选择" button for the poster to select.
+ * Supports viewing helper's detailed profile (age, address, bio, tags).
  *
  * Requirements covered:
  * - 6.3: Show intent list entry with helper details
@@ -11,11 +12,36 @@
  * - 6.5: Provide selection action for the poster
  */
 
-import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Card, Text, Button, Icon } from 'react-native-paper';
+import React, { memo, useState, useCallback } from 'react';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { Card, Text, Button, Icon, Chip, ActivityIndicator, Divider, Portal, Modal } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import { Intent } from '../../types/task';
 import { formatRating } from '../../utils/formatters';
+import apiClient from '../../services/api';
+
+interface HelperProfile {
+  birthday?: string | null;
+  address?: string | null;
+  bio?: string | null;
+}
+
+interface HelperTag {
+  id: string;
+  label_zh: string;
+  category: string;
+}
+
+function calculateAge(birthday: string): number {
+  const birth = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age;
+}
 
 export interface IntentCardProps {
   /** Intent data to display */
@@ -31,10 +57,37 @@ export interface IntentCardProps {
  * Memoized to prevent unnecessary re-renders in FlatList.
  */
 export const IntentCard: React.FC<IntentCardProps> = memo(({ intent, onSelect, disabled }) => {
+  const navigation = useNavigation();
   const isSelected = intent.status === 'selected';
   const isRejected = intent.status === 'rejected';
   const isWithdrawn = intent.status === 'withdrawn';
   const showSelectButton = intent.status === 'pending' && !disabled;
+
+  const [profileVisible, setProfileVisible] = useState(false);
+  const [profile, setProfile] = useState<HelperProfile | null>(null);
+  const [tags, setTags] = useState<HelperTag[]>([]);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  const handleViewProfile = useCallback(async () => {
+    if (profile) {
+      setProfileVisible(true);
+      return;
+    }
+    setIsLoadingProfile(true);
+    try {
+      const [profileRes, tagsRes] = await Promise.all([
+        apiClient.get(`/users/${intent.helperId}`),
+        apiClient.get(`/users/${intent.helperId}/tags`).catch(() => ({ data: { tags: [] } })),
+      ]);
+      setProfile(profileRes.data);
+      setTags(tagsRes.data.tags || []);
+      setProfileVisible(true);
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, [profile, intent.helperId]);
 
   const getStatusLabel = (): string | null => {
     if (isSelected) return '已选择';
@@ -113,6 +166,77 @@ export const IntentCard: React.FC<IntentCardProps> = memo(({ intent, onSelect, d
             </Text>
           </View>
         )}
+
+        {/* View Profile & Reviews Buttons */}
+        <View style={styles.actionRow}>
+          <Button
+            mode="text"
+            onPress={handleViewProfile}
+            loading={isLoadingProfile}
+            icon="account-details"
+            compact
+            style={styles.profileButton}
+            accessibilityLabel="查看帮手详情"
+          >
+            查看详情
+          </Button>
+          <Button
+            mode="text"
+            onPress={() => {
+              const nav = navigation as any;
+              nav.navigate('UserReceivedReviews', { userId: intent.helperId, nickname: intent.helperNickname });
+            }}
+            icon="star-outline"
+            compact
+            style={styles.profileButton}
+            accessibilityLabel="查看帮手评价"
+          >
+            查看评价
+          </Button>
+        </View>
+
+        {/* Profile Dialog */}
+        <Portal>
+          <Modal
+            visible={profileVisible}
+            onDismiss={() => setProfileVisible(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <ScrollView>
+              <Text style={styles.modalTitle}>{intent.helperNickname} 的资料</Text>
+              <Divider style={{ marginVertical: 12 }} />
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>年龄</Text>
+                <Text style={styles.profileValue}>
+                  {profile?.birthday ? `${calculateAge(profile.birthday)} 岁` : '未填写'}
+                </Text>
+              </View>
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>住址</Text>
+                <Text style={styles.profileValue}>{profile?.address || '未填写'}</Text>
+              </View>
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>自我介绍</Text>
+                <Text style={styles.profileValue}>{profile?.bio || '未填写'}</Text>
+              </View>
+              {tags.length > 0 && (
+                <View style={styles.profileRow}>
+                  <Text style={styles.profileLabel}>标签</Text>
+                  <View style={styles.tagsWrap}>
+                    {tags.map((tag) => (
+                      <Chip key={tag.id} compact style={styles.profileTag} textStyle={{ fontSize: 11 }}>
+                        {tag.label_zh}
+                      </Chip>
+                    ))}
+                  </View>
+                </View>
+              )}
+              <Button mode="outlined" onPress={() => setProfileVisible(false)} style={{ marginTop: 16 }}>
+                关闭
+              </Button>
+            </ScrollView>
+          </Modal>
+        </Portal>
 
         {/* Select Button */}
         {showSelectButton && (
@@ -228,6 +352,51 @@ const styles = StyleSheet.create({
   selectButton: {
     marginTop: 12,
     alignSelf: 'flex-end',
+  },
+  profileButton: {
+    marginTop: 4,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    margin: 24,
+    padding: 24,
+    borderRadius: 12,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#212121',
+  },
+  profileRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  profileLabel: {
+    width: 70,
+    fontSize: 13,
+    color: '#757575',
+    fontWeight: '500',
+  },
+  profileValue: {
+    flex: 1,
+    fontSize: 13,
+    color: '#424242',
+    lineHeight: 18,
+  },
+  tagsWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  profileTag: {
+    height: 24,
+    backgroundColor: '#E3F2FD',
   },
 });
 

@@ -6,6 +6,9 @@ export interface User {
   avatarUrl?: string;
   averageRating: number;
   completedTaskCount: number;
+  birthday?: string;
+  address?: string;
+  bio?: string;
   createdAt: string;
 }
 

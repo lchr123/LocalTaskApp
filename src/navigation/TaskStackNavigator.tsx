@@ -19,6 +19,7 @@ import MyTasksTabScreen from '../screens/task/MyTasksTabScreen';
 import CreateReviewScreen from '../screens/review/CreateReviewScreen';
 import CreateReportScreen from '../screens/report/CreateReportScreen';
 import EditTaskScreen from '../screens/task/EditTaskScreen';
+import UserReceivedReviewsScreen from '../screens/review/UserReceivedReviewsScreen';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -27,6 +28,7 @@ export type TaskStackParamList = {
   TaskDetail: { taskId: string };
   IntentList: { taskId: string };
   EditTask: { taskId: string };
+  UserReceivedReviews: { userId: string; nickname?: string };
   CreateReview: {
     taskId: string;
     revieweeId: string;
@@ -76,6 +78,11 @@ export default function TaskStackNavigator() {
         name="EditTask"
         component={EditTaskScreen}
         options={{ title: '编辑任务' }}
+      />
+      <Stack.Screen
+        name="UserReceivedReviews"
+        component={UserReceivedReviewsScreen}
+        options={{ title: '收到的评价' }}
       />
       <Stack.Screen
         name="CreateReview"

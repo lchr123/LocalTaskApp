@@ -8,12 +8,14 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ReviewListScreen from '../screens/review/ReviewListScreen';
 import MyReportsScreen from '../screens/report/MyReportsScreen';
 import HelpScreen from '../screens/profile/HelpScreen';
 
 export type ProfileStackParamList = {
   ProfileMain: undefined;
+  EditProfile: undefined;
   ReviewList: { userId: string; nickname?: string };
   MyReports: undefined;
   Help: undefined;
@@ -35,6 +37,11 @@ export default function ProfileStackNavigator() {
         name="ProfileMain"
         component={ProfileScreen}
         options={{ title: '个人中心', headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: '编辑个人资料' }}
       />
       <Stack.Screen
         name="ReviewList"

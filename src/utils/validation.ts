@@ -172,10 +172,10 @@ export const createTaskFormSchema = z.object({
   location: locationSchema,
   deadline: z
     .string()
-    .min(1, '期望完成时间为必填项')
+    .min(1, '截止时间为必填项')
     .refine(
       (val) => new Date(val).getTime() > Date.now(),
-      '期望完成时间必须晚于当前时间'
+      '截止时间必须晚于当前时间'
     ),
   reward: z
     .number('请输入有效的报酬金额')

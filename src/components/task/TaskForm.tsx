@@ -288,7 +288,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
             {Platform.OS === 'web' ? (
               <>
                 <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
-                  ⏰ 期望完成时间 *
+                  ⏰ 截止时间 *
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                   <input
@@ -340,11 +340,11 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                       setShowDatePicker(true);
                     }
                   }}
-                  accessibilityLabel="选择期望完成时间"
+                  accessibilityLabel="选择截止时间"
                   accessibilityRole="button"
                 >
                   <TextInput
-                    label="期望完成时间 *"
+                    label="截止时间 *"
                     value={value ? formatDeadlineDisplay(value) : ''}
                     mode="outlined"
                     editable={false}
@@ -352,7 +352,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                     left={<TextInput.Icon icon="clock-outline" />}
                     right={<TextInput.Icon icon="calendar" />}
                     pointerEvents="none"
-                    accessibilityLabel="期望完成时间"
+                    accessibilityLabel="截止时间"
                   />
                 </Pressable>
                 {showDatePicker && DateTimePicker && (
@@ -393,7 +393,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
               <HelperText
                 type="error"
                 visible={!!errors.deadline}
-                accessibilityLabel="期望完成时间错误提示"
+                accessibilityLabel="截止时间错误提示"
               >
                 {errors.deadline.message}
               </HelperText>

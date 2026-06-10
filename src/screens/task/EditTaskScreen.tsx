@@ -53,6 +53,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
   const [description, setDescription] = useState('');
   const [reward, setReward] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [initialDeadline, setInitialDeadline] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
   const [tempDate, setTempDate] = useState<Date>(new Date());
@@ -62,8 +63,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     longitude: 0,
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successVisible, setSuccessVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);  const [successVisible, setSuccessVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load task data on mount
@@ -75,6 +75,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
         setDescription(taskData.description);
         setReward(String(taskData.reward));
         setDeadline(taskData.deadline ? toLocalDatetimeString(new Date(taskData.deadline)) : '');
+        setInitialDeadline(taskData.deadline ? toLocalDatetimeString(new Date(taskData.deadline)) : '');
         setLocation({
           address: taskData.location.address,
           latitude: taskData.location.latitude,
@@ -108,7 +109,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
 
   const deadlineError =
     deadline !== '' && new Date(deadline).getTime() <= Date.now()
-      ? '期望完成时间必须晚于当前时间'
+      ? '截止时间必须晚于当前时间'
       : null;
 
   const canSubmit =
@@ -160,10 +161,8 @@ export default function EditTaskScreen({ route, navigation }: Props) {
       ) {
         payload.location = location;
       }
-      const originalDeadline = task.deadline;
-      const newDeadlineISO = new Date(deadline).toISOString();
-      if (newDeadlineISO !== new Date(originalDeadline).toISOString()) {
-        payload.deadline = newDeadlineISO;
+      if (deadline !== initialDeadline) {
+        payload.deadline = new Date(deadline).toISOString();
       }
 
       if (Object.keys(payload).length === 0) {
@@ -184,7 +183,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [canSubmit, description, rewardNum, location, task, navigation]);
+  }, [canSubmit, description, rewardNum, location, deadline, initialDeadline, task, navigation]);
 
   // Loading state
   if (isLoadingTask) {
@@ -305,7 +304,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
           {Platform.OS === 'web' ? (
             <>
               <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
-                ⏰ 期望完成时间 *
+                ⏰ 截止时间 *
               </Text>
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                 <input
@@ -357,11 +356,11 @@ export default function EditTaskScreen({ route, navigation }: Props) {
                     setShowDatePicker(true);
                   }
                 }}
-                accessibilityLabel="选择期望完成时间"
+                accessibilityLabel="选择截止时间"
                 accessibilityRole="button"
               >
                 <TextInput
-                  label="期望完成时间 *"
+                  label="截止时间 *"
                   value={deadline ? formatDeadlineDisplay(deadline) : ''}
                   mode="outlined"
                   editable={false}
@@ -369,7 +368,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
                   left={<TextInput.Icon icon="clock-outline" />}
                   right={<TextInput.Icon icon="calendar" />}
                   pointerEvents="none"
-                  accessibilityLabel="期望完成时间"
+                  accessibilityLabel="截止时间"
                 />
               </Pressable>
               {showDatePicker && DateTimePicker && (

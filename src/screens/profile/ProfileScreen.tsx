@@ -301,6 +301,69 @@ export default function ProfileScreen() {
 
       <Divider />
 
+      {/* Profile Completion Guide Card */}
+      {isLoggedIn && (!user?.bio || !user?.address) && (
+        <Pressable
+          style={styles.guideCard}
+          onPress={() => (navigation as any).navigate('EditProfile')}
+          accessibilityLabel="完善个人资料引导"
+          accessibilityRole="button"
+        >
+          <View style={styles.guideCardContent}>
+            <Text style={styles.guideCardEmoji}>💡</Text>
+            <View style={styles.guideCardText}>
+              <Text variant="titleSmall" style={{ fontWeight: '600' }}>
+                完善你的个人资料
+              </Text>
+              <Text variant="bodySmall" style={{ color: '#666', marginTop: 2 }}>
+                填写自我介绍和标签，更容易获得任务机会
+              </Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#1976D2" />
+          </View>
+        </Pressable>
+      )}
+
+      {/* Edit Profile Entry */}
+      <Pressable
+        style={styles.menuItem}
+        onPress={() =>
+          requireLogin(() => {
+            (navigation as any).navigate('EditProfile');
+          })
+        }
+        accessibilityLabel="编辑个人资料"
+        accessibilityRole="button"
+      >
+        <View style={styles.menuItemLeft}>
+          <MaterialCommunityIcons
+            name="account-edit-outline"
+            size={24}
+            color={theme.colors.onSurface}
+          />
+          <Text variant="bodyLarge" style={styles.menuItemText}>
+            编辑个人资料
+          </Text>
+        </View>
+        <View style={styles.menuItemRight}>
+          {!isLoggedIn && (
+            <Text
+              variant="bodySmall"
+              style={[styles.menuItemBadge, { color: theme.colors.outline }]}
+            >
+              登录后可用
+            </Text>
+          )}
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={24}
+            color={theme.colors.outline}
+          />
+        </View>
+      </Pressable>
+
+      <Divider />
+
       {/* Review List Entry - Requirement 8.5 */}
       <Pressable
         style={styles.menuItem}
@@ -630,5 +693,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     paddingVertical: 10,
+  },
+  guideCard: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+  },
+  guideCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+  },
+  guideCardEmoji: {
+    fontSize: 24,
+  },
+  guideCardText: {
+    flex: 1,
   },
 });
