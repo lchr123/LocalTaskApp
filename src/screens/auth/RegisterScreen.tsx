@@ -37,6 +37,7 @@ import {
   RegisterByEmailData,
 } from '../../utils/validation';
 import { Image } from 'react-native';
+import TurnstileWidget from '../../components/common/TurnstileWidget';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -120,6 +121,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [method, setMethod] = useState<string>('email');
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Phone registration form
   const phoneForm = useForm<RegisterByPhoneData>({
@@ -160,19 +162,20 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
    */
   const onSubmitPhone = useCallback(
     async (data: RegisterByPhoneData) => {
+      if (Platform.OS === 'web' && !captchaToken) {
+        setServerError('请完成人机验证');
+        return;
+      }
       setServerError(null);
       clearError();
 
       try {
-        await registerUser(data.phone, data.password, 'phone');
+        await registerUser(data.phone, data.password, 'phone', captchaToken || undefined);
         navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone', password: data.password });
       } catch (error: unknown) {
-        // Check if user already exists - try to resend verification code
         if (isUserExistsError(error)) {
           try {
             await authService.resendVerificationCode(data.phone);
-            // Resend succeeded - navigate to verify page regardless of user state
-            // If user is already verified, they'll get an error when entering the code
             navigation.navigate('VerifyCode', { identifier: data.phone, method: 'phone', password: data.password });
           } catch {
             setServerError('该账号已注册，请直接登录');
@@ -182,7 +185,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
         }
       }
     },
-    [registerUser, navigation, clearError]
+    [registerUser, navigation, clearError, captchaToken]
   );
 
   /**
@@ -190,14 +193,17 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
    */
   const onSubmitEmail = useCallback(
     async (data: RegisterByEmailData) => {
+      if (Platform.OS === 'web' && !captchaToken) {
+        setServerError('请完成人机验证');
+        return;
+      }
       setServerError(null);
       clearError();
 
       try {
-        await registerUser(data.email, data.password, 'email');
+        await registerUser(data.email, data.password, 'email', captchaToken || undefined);
         navigation.navigate('VerifyCode', { identifier: data.email, method: 'email', password: data.password });
       } catch (error: unknown) {
-        // Check if user already exists - try to resend verification code
         if (isUserExistsError(error)) {
           try {
             await authService.resendVerificationCode(data.email);
@@ -210,7 +216,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
         }
       }
     },
-    [registerUser, navigation, clearError]
+    [registerUser, navigation, clearError, captchaToken]
   );
 
   const togglePasswordVisibility = useCallback(() => {
@@ -478,6 +484,12 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           })}
         </View>
 
+        {/* Turnstile CAPTCHA */}
+        <TurnstileWidget
+          onVerify={(token) => setCaptchaToken(token)}
+          onExpire={() => setCaptchaToken(null)}
+        />
+
         {/* Submit Button */}
         <Button
           mode="contained"
@@ -487,7 +499,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
               : emailForm.handleSubmit(onSubmitEmail)
           }
           loading={isLoading}
-          disabled={isLoading}
+          disabled={isLoading || (Platform.OS === 'web' && !captchaToken)}
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
           accessibilityLabel="注册按钮"

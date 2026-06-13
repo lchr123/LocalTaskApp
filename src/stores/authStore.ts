@@ -40,7 +40,7 @@ interface AuthState {
   /** Initialize auth state on app startup */
   initialize: () => Promise<void>;
   /** Register a new user */
-  register: (identifier: string, password: string, method: 'email' | 'phone') => Promise<void>;
+  register: (identifier: string, password: string, method: 'email' | 'phone', captchaToken?: string) => Promise<void>;
   /** Confirm registration with verification code */
   confirmRegistration: (identifier: string, code: string) => Promise<void>;
   /** Resend verification code */
@@ -146,12 +146,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
      * Implements Requirement 1.3: create user via Cognito.
      * Supports phone or email as the registration identifier.
      */
-    register: async (identifier: string, password: string, method: 'email' | 'phone') => {
+    register: async (identifier: string, password: string, method: 'email' | 'phone', captchaToken?: string) => {
       set({ isLoading: true, error: null });
-      console.log('3')
       try {
-        await authService.register(identifier, password, method);
-        console.log('4')
+        await authService.register(identifier, password, method, captchaToken);
         set({ isLoading: false });
       } catch (error: unknown) {
         const message =

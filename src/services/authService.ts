@@ -244,7 +244,7 @@ class AuthService {
    * @param password - User's password (must meet security policy)
    * @param method - 'email' or 'phone' indicating which identifier is used
    */
-  async register(identifier: string, password: string, method: 'email' | 'phone'): Promise<void> {
+  async register(identifier: string, password: string, method: 'email' | 'phone', captchaToken?: string): Promise<void> {
     const userAttributes: Record<string, string> = {};
 
     if (method === 'email') {
@@ -258,6 +258,7 @@ class AuthService {
       password,
       options: {
         userAttributes,
+        clientMetadata: captchaToken ? { captchaToken } : undefined,
       },
     });
   }
