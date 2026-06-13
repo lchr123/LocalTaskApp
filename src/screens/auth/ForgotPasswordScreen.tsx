@@ -39,6 +39,7 @@ import {
   ResetPasswordData,
 } from '../../utils/validation';
 import { VALIDATION } from '../../utils/constants';
+import TurnstileWidget from '../../components/common/TurnstileWidget';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -124,6 +125,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
   const [email, setEmail] = useState('');
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   // Code input state
   const [codeDigits, setCodeDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
@@ -148,7 +150,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 
   const passwordForm = useForm<ResetPasswordData>({
     resolver: zodResolver(resetPasswordSchema),
-    defaultValues: { code: '', newPassword: '' },
+    defaultValues: { code: '', newPassword: '', confirmPassword: '' },
     mode: 'onChange',
   });
 
@@ -187,6 +189,10 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 
   const handleSendCode = useCallback(
     async (data: ForgotPasswordData) => {
+      if (Platform.OS === 'web' && !captchaToken) {
+        setServerError('请完成人机验证');
+        return;
+      }
       setServerError(null);
       clearError();
       setIsSubmitting(true);
@@ -371,12 +377,18 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         )}
       />
 
+      {/* Turnstile CAPTCHA */}
+      <TurnstileWidget
+        onVerify={(token) => setCaptchaToken(token)}
+        onExpire={() => setCaptchaToken(null)}
+      />
+
       {/* Send Code Button */}
       <Button
         mode="contained"
         onPress={emailForm.handleSubmit(handleSendCode)}
         loading={isSubmitting || isLoading}
-        disabled={isSubmitting || isLoading}
+        disabled={isSubmitting || isLoading || (Platform.OS === 'web' && !captchaToken)}
         style={styles.submitButton}
         contentStyle={styles.submitButtonContent}
         accessibilityLabel="发送验证码"
@@ -582,6 +594,33 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
             />
             <HelperText type="error" visible={!!passwordForm.formState.errors.newPassword}>
               {passwordForm.formState.errors.newPassword?.message}
+            </HelperText>
+          </View>
+        )}
+      />
+
+      {/* Confirm Password Field */}
+      <Controller
+        control={passwordForm.control}
+        name="confirmPassword"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <View style={styles.fieldContainer}>
+            <TextInput
+              label="确认新密码"
+              placeholder="请再次输入新密码"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              mode="outlined"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              error={!!passwordForm.formState.errors.confirmPassword}
+              disabled={isSubmitting || isLoading}
+              left={<TextInput.Icon icon="lock-check" />}
+              accessibilityLabel="确认新密码输入框"
+            />
+            <HelperText type="error" visible={!!passwordForm.formState.errors.confirmPassword}>
+              {passwordForm.formState.errors.confirmPassword?.message}
             </HelperText>
           </View>
         )}

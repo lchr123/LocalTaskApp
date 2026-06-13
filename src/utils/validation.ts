@@ -133,6 +133,10 @@ export const resetPasswordSchema = z.object({
       passwordRegex,
       '密码必须包含至少1个小写字母、1个数字'
     ),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: '两次输入的密码不一致',
+  path: ['confirmPassword'],
 });
 
 export type ForgotPasswordData = z.infer<typeof forgotPasswordSchema>;
