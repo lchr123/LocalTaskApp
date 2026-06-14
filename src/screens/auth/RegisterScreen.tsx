@@ -17,7 +17,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import {
   TextInput,
   Button,
@@ -25,6 +25,9 @@ import {
   HelperText,
   SegmentedButtons,
   useTheme,
+  Checkbox,
+  Portal,
+  Modal,
 } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +41,7 @@ import {
 } from '../../utils/validation';
 import { Image } from 'react-native';
 import TurnstileWidget from '../../components/common/TurnstileWidget';
+import { TERMS_OF_SERVICE, PRIVACY_POLICY } from '../../utils/legalTexts';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -122,6 +126,9 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [termsDialogVisible, setTermsDialogVisible] = useState(false);
+  const [termsDialogType, setTermsDialogType] = useState<'terms' | 'privacy'>('terms');
 
   // Phone registration form
   const phoneForm = useForm<RegisterByPhoneData>({
@@ -484,6 +491,30 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           })}
         </View>
 
+        {/* Terms Agreement */}
+        <Pressable
+          style={styles.termsRow}
+          onPress={() => setAgreedToTerms(!agreedToTerms)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: agreedToTerms }}
+          accessibilityLabel="同意用户协议和隐私政策"
+        >
+          <Checkbox
+            status={agreedToTerms ? 'checked' : 'unchecked'}
+            onPress={() => setAgreedToTerms(!agreedToTerms)}
+          />
+          <Text variant="bodySmall" style={styles.termsText}>
+            我已阅读并同意{' '}
+            <Text style={styles.termsLink} onPress={() => { setTermsDialogType('terms'); setTermsDialogVisible(true); }}>
+              用户协议
+            </Text>
+            {' '}和{' '}
+            <Text style={styles.termsLink} onPress={() => { setTermsDialogType('privacy'); setTermsDialogVisible(true); }}>
+              隐私政策
+            </Text>
+          </Text>
+        </Pressable>
+
         {/* Turnstile CAPTCHA */}
         <TurnstileWidget
           onVerify={(token) => setCaptchaToken(token)}
@@ -499,7 +530,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
               : emailForm.handleSubmit(onSubmitEmail)
           }
           loading={isLoading}
-          disabled={isLoading || (Platform.OS === 'web' && !captchaToken)}
+          disabled={isLoading || !agreedToTerms || (Platform.OS === 'web' && !captchaToken)}
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
           accessibilityLabel="注册按钮"
@@ -521,6 +552,27 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           </Button>
         </View>
       </ScrollView>
+
+      {/* Terms / Privacy Dialog */}
+      <Portal>
+        <Modal
+          visible={termsDialogVisible}
+          onDismiss={() => setTermsDialogVisible(false)}
+          contentContainerStyle={styles.termsModal}
+        >
+          <ScrollView>
+            <Text variant="titleLarge" style={{ fontWeight: '600', marginBottom: 12 }}>
+              {termsDialogType === 'terms' ? '用户协议' : '隐私政策'}
+            </Text>
+            <Text variant="bodyMedium" style={{ lineHeight: 22, color: '#333' }}>
+              {termsDialogType === 'terms' ? TERMS_OF_SERVICE : PRIVACY_POLICY}
+            </Text>
+            <Button mode="contained" onPress={() => setTermsDialogVisible(false)} style={{ marginTop: 20 }}>
+              我知道了
+            </Button>
+          </ScrollView>
+        </Modal>
+      </Portal>
     </KeyboardAvoidingView>
   );
 }
@@ -582,6 +634,28 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  termsText: {
+    flex: 1,
+    color: '#555',
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: '#1976D2',
+    textDecorationLine: 'underline',
+  },
+  termsModal: {
+    backgroundColor: '#fff',
+    margin: 24,
+    padding: 24,
+    borderRadius: 12,
+    maxHeight: '80%',
   },
   loginLinkContainer: {
     flexDirection: 'row',
