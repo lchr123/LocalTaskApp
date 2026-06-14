@@ -169,6 +169,29 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config;
 
+    // Handle 403 account_banned - show message and force logout
+    if (error.response?.status === 403) {
+      const data = error.response.data as any;
+      if (data?.error === 'account_banned') {
+        // Avoid multiple ban dialogs
+        if (!(window as any).__banDialogShown) {
+          (window as any).__banDialogShown = true;
+          const { appDialog } = await import('../stores/dialogStore');
+          await appDialog.alert({
+            title: '账号已被封禁',
+            message: data.message || '您的账号已被封禁，无法继续使用。',
+          });
+          (window as any).__banDialogShown = false;
+
+          // Force logout
+          const { useAuthStore } = await import('../stores/authStore');
+          const { logout } = useAuthStore.getState();
+          await logout();
+        }
+        return Promise.reject(error);
+      }
+    }
+
     // Only handle 401 errors with a valid original request
     if (error.response?.status !== 401 || !originalRequest) {
       return Promise.reject(error);

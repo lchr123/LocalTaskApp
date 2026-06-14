@@ -200,12 +200,26 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
       if (password) {
         try {
           await login(identifier, password);
-          if (Platform.OS === 'web') {
-            await appDialog.alert({ title: '注册成功 🎉', message: '验证完成，已自动登录。' });
-          } else {
-            Alert.alert('注册成功 🎉', '验证完成，已自动登录。');
-          }
+
+          // Show profile completion guide
+          const goToProfile = await appDialog.confirm({
+            title: '欢迎加入 🎉',
+            message: '完善个人资料可以让发布者更信任你，获得更多任务机会。',
+            confirmText: '去完善',
+            cancelText: '稍后再说',
+          });
+
           resetToMain();
+
+          if (goToProfile) {
+            // Small delay to let navigation settle, then navigate to EditProfile
+            setTimeout(() => {
+              const { navigationRef } = require('../../navigation/navigationRef');
+              if (navigationRef.isReady()) {
+                navigationRef.navigate('Profile', { screen: 'EditProfile' });
+              }
+            }, 300);
+          }
           return;
         } catch {
           // Auto-login failed, fall back to manual login

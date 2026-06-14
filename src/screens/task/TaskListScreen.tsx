@@ -87,6 +87,15 @@ export default function TaskListScreen() {
   }, [userLocation]);
 
   /**
+   * Re-fetch tasks when filter changes (e.g., radius).
+   */
+  useEffect(() => {
+    if (userLocation && isInitializedRef.current) {
+      fetchTasks();
+    }
+  }, [filter]);
+
+  /**
    * Handle pull-to-refresh.
    * Requirement 5.4: Refresh completes within 5 seconds.
    */
@@ -240,7 +249,30 @@ export default function TaskListScreen() {
   return (
     <View style={styles.container} accessibilityLabel="任务列表">
       <View style={styles.rangeHint}>
-        <Text style={styles.rangeHintText}>📍 显示范围：周围 100km 内的任务</Text>
+        <Text style={styles.rangeHintLabel}>📍 搜索范围：</Text>
+        {[5, 10, 20, 50, 100].map((km) => (
+          <TouchableOpacity
+            key={km}
+            onPress={() => {
+              setFilter({ radius: km });
+            }}
+            style={[
+              styles.rangeChip,
+              (filter.radius ?? 100) === km && styles.rangeChipActive,
+            ]}
+            accessibilityLabel={`搜索范围${km}公里`}
+            accessibilityRole="button"
+          >
+            <Text
+              style={[
+                styles.rangeChipText,
+                (filter.radius ?? 100) === km && styles.rangeChipTextActive,
+              ]}
+            >
+              {km}km
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Filter & Sort Bar */}
@@ -298,12 +330,34 @@ const styles = StyleSheet.create({
   rangeHint: {
     backgroundColor: '#E3F2FD',
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  rangeHintText: {
+  rangeHintLabel: {
     fontSize: 13,
     color: '#1565C0',
-    textAlign: 'center',
+  },
+  rangeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#90CAF9',
+  },
+  rangeChipActive: {
+    backgroundColor: '#1976D2',
+    borderColor: '#1976D2',
+  },
+  rangeChipText: {
+    fontSize: 12,
+    color: '#1565C0',
+  },
+  rangeChipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
   },
   filterRow: {
     flexDirection: 'row',

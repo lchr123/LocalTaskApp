@@ -127,6 +127,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [confirmedAge, setConfirmedAge] = useState(false);
   const [termsDialogVisible, setTermsDialogVisible] = useState(false);
   const [termsDialogType, setTermsDialogType] = useState<'terms' | 'privacy'>('terms');
 
@@ -515,6 +516,23 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
           </Text>
         </Pressable>
 
+        {/* Age Confirmation */}
+        <Pressable
+          style={styles.termsRow}
+          onPress={() => setConfirmedAge(!confirmedAge)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: confirmedAge }}
+          accessibilityLabel="确认已满18岁"
+        >
+          <Checkbox
+            status={confirmedAge ? 'checked' : 'unchecked'}
+            onPress={() => setConfirmedAge(!confirmedAge)}
+          />
+          <Text variant="bodySmall" style={styles.termsText}>
+            我确认已年满18周岁
+          </Text>
+        </Pressable>
+
         {/* Turnstile CAPTCHA */}
         <TurnstileWidget
           onVerify={(token) => setCaptchaToken(token)}
@@ -530,7 +548,7 @@ export default function RegisterScreen({ navigation }: RegisterScreenProps) {
               : emailForm.handleSubmit(onSubmitEmail)
           }
           loading={isLoading}
-          disabled={isLoading || !agreedToTerms || (Platform.OS === 'web' && !captchaToken)}
+          disabled={isLoading || !agreedToTerms || !confirmedAge || (Platform.OS === 'web' && !captchaToken)}
           style={styles.submitButton}
           contentStyle={styles.submitButtonContent}
           accessibilityLabel="注册按钮"
@@ -638,8 +656,8 @@ const styles = StyleSheet.create({
   termsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    marginTop: 8,
+    marginBottom: 2,
+    marginTop: 2,
   },
   termsText: {
     flex: 1,

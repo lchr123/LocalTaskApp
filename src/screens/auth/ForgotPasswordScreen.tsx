@@ -211,7 +211,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         setIsSubmitting(false);
       }
     },
-    [forgotPassword, clearError]
+    [forgotPassword, clearError, captchaToken]
   );
 
   // ─── Step 2: Verify Code ───────────────────────────────────────────────────
