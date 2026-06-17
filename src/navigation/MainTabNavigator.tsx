@@ -17,7 +17,7 @@
  * - 10.5: Consistent navigation on iOS and Android
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +26,8 @@ import HomeStackNavigator from './HomeStackNavigator';
 import TaskStackNavigator from './TaskStackNavigator';
 import ChatStackNavigator from './ChatStackNavigator';
 import ProfileStackNavigator from './ProfileStackNavigator';
+import { useAuthStore } from '../stores/authStore';
+import { useBadgeStore } from '../stores/badgeStore';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -61,6 +63,17 @@ const INACTIVE_COLOR = '#8E8E93';
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MainTabNavigator() {
+  const { isAuthenticated, tokens } = useAuthStore();
+  const { pendingIntentCount, hasUnreadMessages, refreshBadges } = useBadgeStore();
+
+  useEffect(() => {
+    if (isAuthenticated && tokens) {
+      refreshBadges();
+      const interval = setInterval(refreshBadges, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, tokens, refreshBadges]);
+
   return (
     <Tab.Navigator
       initialRouteName="Home"
@@ -101,6 +114,7 @@ export default function MainTabNavigator() {
         options={{
           tabBarLabel: '任务',
           tabBarAccessibilityLabel: '任务列表',
+          tabBarBadge: pendingIntentCount > 0 ? pendingIntentCount : undefined,
         }}
       />
       <Tab.Screen
@@ -117,6 +131,8 @@ export default function MainTabNavigator() {
         options={{
           tabBarLabel: '消息',
           tabBarAccessibilityLabel: '消息',
+          tabBarBadge: hasUnreadMessages ? '' : undefined,
+          tabBarBadgeStyle: hasUnreadMessages ? { backgroundColor: '#f44336', minWidth: 10, maxHeight: 10, borderRadius: 5, top: 2 } : undefined,
         }}
       />
       <Tab.Screen

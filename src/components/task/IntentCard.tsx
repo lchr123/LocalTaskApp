@@ -24,6 +24,7 @@ interface HelperProfile {
   birthday?: string | null;
   address?: string | null;
   bio?: string | null;
+  gender?: string | null;
 }
 
 interface HelperTag {
@@ -205,6 +206,12 @@ export const IntentCard: React.FC<IntentCardProps> = memo(({ intent, onSelect, d
             <ScrollView>
               <Text style={styles.modalTitle}>{intent.helperNickname} 的资料</Text>
               <Divider style={{ marginVertical: 12 }} />
+              <View style={styles.profileRow}>
+                <Text style={styles.profileLabel}>性别</Text>
+                <Text style={styles.profileValue}>
+                  {{ male: '男', female: '女', other: '其他' }[profile?.gender || ''] || '未填写'}
+                </Text>
+              </View>
               <View style={styles.profileRow}>
                 <Text style={styles.profileLabel}>年龄</Text>
                 <Text style={styles.profileValue}>

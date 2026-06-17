@@ -107,11 +107,25 @@ export default function MyTasksScreen() {
     );
   }
 
+  // Count pending intents across all open tasks
+  const totalPendingIntents = tasks
+    .filter((t) => t.status === 'open' && t.intentCount > 0)
+    .reduce((sum, t) => sum + t.intentCount, 0);
+
   return (
     <FlatList
       data={tasks}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.list}
+      ListHeaderComponent={
+        totalPendingIntents > 0 ? (
+          <View style={styles.pendingBanner}>
+            <Text style={styles.pendingBannerText}>
+              📢 你有 {totalPendingIntents} 位申请者待处理，请及时查看并选择帮手
+            </Text>
+          </View>
+        ) : null
+      }
       refreshControl={
         <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
       }
@@ -307,5 +321,19 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     borderRadius: 6,
+  },
+  pendingBanner: {
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFE0B2',
+  },
+  pendingBannerText: {
+    fontSize: 13,
+    color: '#E65100',
+    lineHeight: 18,
   },
 });

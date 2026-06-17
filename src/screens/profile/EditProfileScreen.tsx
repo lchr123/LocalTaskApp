@@ -13,7 +13,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import { Text, TextInput, Button, HelperText, Chip, Snackbar, useTheme, ActivityIndicator, Divider } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Chip, Snackbar, useTheme, ActivityIndicator, Divider, Menu } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../stores/authStore';
 import apiClient from '../../services/api';
@@ -32,6 +32,8 @@ export default function EditProfileScreen() {
 
   const [nickname, setNickname] = useState('');
   const [birthday, setBirthday] = useState('');
+  const [gender, setGender] = useState('');
+  const [genderMenuVisible, setGenderMenuVisible] = useState(false);
   const [address, setAddress] = useState('');
   const [bio, setBio] = useState('');
 
@@ -56,6 +58,7 @@ export default function EditProfileScreen() {
         const profile = profileRes.data;
         setNickname(profile.nickname || '');
         setBirthday(profile.birthday?.slice(0, 10) || '');
+        setGender(profile.gender || '');
         setAddress(profile.address || '');
         setBio(profile.bio || '');
         setUser(profile);
@@ -86,6 +89,7 @@ export default function EditProfileScreen() {
       const profileRes = await apiClient.patch('/users/me', {
         nickname: nickname.trim(),
         birthday: birthday || undefined,
+        gender: gender || undefined,
         address: address.trim() || undefined,
         bio: bio.trim() || undefined,
       });
@@ -177,6 +181,32 @@ export default function EditProfileScreen() {
               boxSizing: 'border-box' as any,
             }}
           />
+        </View>
+
+        {/* Gender */}
+        <View style={styles.fieldContainer}>
+          <Menu
+            visible={genderMenuVisible}
+            onDismiss={() => setGenderMenuVisible(false)}
+            anchor={
+              <Pressable onPress={() => setGenderMenuVisible(true)} disabled={isSubmitting}>
+                <TextInput
+                  label="性别"
+                  value={{ male: '男', female: '女', other: '其他' }[gender] || ''}
+                  mode="outlined"
+                  editable={false}
+                  right={<TextInput.Icon icon="chevron-down" onPress={() => setGenderMenuVisible(true)} />}
+                  pointerEvents="none"
+                  style={styles.input}
+                />
+              </Pressable>
+            }
+            anchorPosition="bottom"
+          >
+            <Menu.Item title="男" onPress={() => { setGender('male'); setGenderMenuVisible(false); }} />
+            <Menu.Item title="女" onPress={() => { setGender('female'); setGenderMenuVisible(false); }} />
+            <Menu.Item title="其他" onPress={() => { setGender('other'); setGenderMenuVisible(false); }} />
+          </Menu>
         </View>
 
         {/* Address */}
