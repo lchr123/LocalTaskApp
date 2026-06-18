@@ -106,7 +106,17 @@ export default function EditProfileScreen() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [nickname, birthday, address, bio, selectedTagIds, navigation, setUser]);
+  }, [
+      nickname,
+      birthday,
+      gender,
+      address,
+      bio,
+      selectedTagIds,
+      navigation,
+      setUser,
+    ]
+  );
 
   // Group tags by category
   const tagsByCategory = allTags.reduce<Record<string, HelperTag[]>>((acc, tag) => {
