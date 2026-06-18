@@ -55,6 +55,7 @@ const TASK_TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'moving', label: TASK_TYPE_LABELS.moving },
   { value: 'airport_transfer', label: TASK_TYPE_LABELS.airport_transfer },
   { value: 'childcare', label: TASK_TYPE_LABELS.childcare },
+  { value: 'house_rent', label: TASK_TYPE_LABELS.house_rent },
   { value: 'other', label: TASK_TYPE_LABELS.other },
 ];
 

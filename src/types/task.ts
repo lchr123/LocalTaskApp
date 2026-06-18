@@ -1,4 +1,4 @@
-export type TaskType = 'delivery' | 'pet_care' | 'translation' | 'moving' | 'airport_transfer' | 'childcare' | 'other';
+export type TaskType = 'delivery' | 'pet_care' | 'translation' | 'moving' | 'airport_transfer' | 'childcare' | 'house_rent' | 'other';
 export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Task {

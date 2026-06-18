@@ -9,8 +9,9 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   pet_care: '宠物照护',
   translation: '翻译陪同',
   moving: '搬家协助',
-  airport_transfer: '接机送机',
+  airport_transfer: '出租车接送',
   childcare: '育儿协助',
+  house_rent: '房屋短租',
   other: '其他',
 };
 
