@@ -365,6 +365,14 @@ export default function VerifyCodeScreen({ navigation, route }: VerifyCodeScreen
         <Text variant="bodyMedium" style={styles.subtitle}>
           验证码已发送至 {identifier}
         </Text>
+        {method === 'email' && (
+          <Text
+            variant="bodySmall"
+            style={[styles.emailHint, { color: theme.colors.onSurfaceVariant }]}
+          >
+            💡如果没有收到，请检查垃圾邮件或广告邮件文件夹
+          </Text>
+        )}
 
         {/* Expiry Timer */}
         <View style={styles.timerContainer}>
@@ -590,7 +598,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    marginBottom: 8,
+    marginBottom: 4,
     opacity: 0.7,
     textAlign: 'center',
   },
@@ -639,5 +647,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 8,
+  },
+  emailHint: {
+    marginBottom: 12,
+    textAlign: 'center',
   },
 });

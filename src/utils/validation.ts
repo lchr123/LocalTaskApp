@@ -144,7 +144,7 @@ export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
 // ─── Task Form Schema ────────────────────────────────────────────────────────
 
-const taskTypes = ['delivery', 'pet_care', 'translation', 'moving', 'airport_transfer', 'childcare', 'other'] as const;
+const taskTypes = ['delivery', 'pet_care', 'translation', 'moving', 'airport_transfer', 'childcare', 'house_rent', 'other'] as const;
 
 /**
  * Location object schema with address and coordinates.
