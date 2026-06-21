@@ -174,16 +174,58 @@ class TaskService {
   }
 
   /**
+   * Start (or reuse) a chat session with an applicant while the task is still
+   * open, without selecting them. Returns the session info needed to open the
+   * chat room. Backend restricts this to the poster and to users with a
+   * pending intent on the task.
+   */
+  async startChatWithApplicant(
+    taskId: string,
+    helperId: string
+  ): Promise<{ sessionId: string; taskId: string; taskTitle: string; taskType?: string }> {
+    const response = await apiClient.post<{
+      sessionId: string;
+      taskId: string;
+      taskTitle: string;
+      taskType?: string;
+    }>(API_ENDPOINTS.TASK_START_CHAT(taskId), { helperId });
+    return response.data;
+  }
+
+  /**
    * Update task details (description, reward, location, deadline).
    * Only allowed for tasks in 'open' status by the poster.
    */
   async updateTask(
     taskId: string,
-    payload: { description?: string; reward?: number; location?: { address: string; latitude: number; longitude: number }; deadline?: string }
+    payload: {
+      description?: string;
+      reward?: number;
+      location?: { address: string; latitude: number; longitude: number };
+      deadline?: string;
+      rewardUnit?: string | null;
+      images?: string[];
+      headcount?: number;
+      startTime?: string | null;
+      contactMethod?: string | null;
+      durationHours?: number | null;
+      durationUnit?: string | null;
+    }
   ): Promise<Task> {
     const response = await apiClient.patch<Task>(
       API_ENDPOINTS.TASK_DETAIL(taskId),
       payload
+    );
+    return response.data;
+  }
+
+  /**
+   * Update the poster's private memo on their own task (any status).
+   */
+  async updateMemo(taskId: string, posterMemo: string | null): Promise<Task> {
+    const response = await apiClient.patch<Task>(
+      API_ENDPOINTS.TASK_MEMO(taskId),
+      { posterMemo }
     );
     return response.data;
   }

@@ -184,8 +184,18 @@ export const createTaskFormSchema = z.object({
   reward: z
     .number('请输入有效的报酬金额')
     .int('报酬金额必须为整数')
-    .min(VALIDATION.TASK_REWARD_MIN, `报酬金额最低为${VALIDATION.TASK_REWARD_MIN}元`)
-    .max(VALIDATION.TASK_REWARD_MAX, `报酬金额最高为${VALIDATION.TASK_REWARD_MAX}元`),
+    .min(VALIDATION.TASK_REWARD_MIN, `报酬金额最低为${VALIDATION.TASK_REWARD_MIN}円`)
+    .max(VALIDATION.TASK_REWARD_MAX, `报酬金额最高为${VALIDATION.TASK_REWARD_MAX}円`),
+  rewardUnit: z.enum(['once', 'hour', 'day', 'month']).nullish(),
+  images: z.array(z.string()).max(9, '最多上传9张图片').optional(),
+  headcount: z.number().int().min(1).max(999).optional(),
+  startTime: z
+    .string()
+    .refine((val) => !val || !isNaN(new Date(val).getTime()), '开始时间格式无效')
+    .nullish(),
+  contactMethod: z.string().max(100, '联系方式不能超过100字符').nullish(),
+  durationHours: z.number().positive('时长需大于0').max(999.9).nullish(),
+  durationUnit: z.enum(['once', 'day', 'week', 'month']).nullish(),
 });
 
 export type CreateTaskFormData = z.infer<typeof createTaskFormSchema>;

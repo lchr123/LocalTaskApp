@@ -68,6 +68,13 @@ export default function CreateTaskScreen() {
           },
           reward: data.reward,
           deadline: new Date(data.deadline).toISOString(),
+          rewardUnit: data.rewardUnit ?? null,
+          images: data.images ?? [],
+          headcount: data.headcount,
+          startTime: data.startTime ? new Date(data.startTime).toISOString() : null,
+          contactMethod: data.contactMethod || null,
+          durationHours: data.durationHours ?? null,
+          durationUnit: data.durationUnit ?? null,
         });
 
         // Show success feedback

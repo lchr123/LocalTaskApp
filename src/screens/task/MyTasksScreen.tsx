@@ -7,9 +7,10 @@
 
 import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl, Platform } from 'react-native';
-import { Text, Card, Chip, Button, useTheme, ActivityIndicator } from 'react-native-paper';
+import { Text, Card, Chip, Button, useTheme, ActivityIndicator, Portal, Dialog, TextInput, Icon } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import apiClient from '../../services/api';
+import { taskService } from '../../services/taskService';
 import { formatReward, formatRelativeTime } from '../../utils/formatters';
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { Task } from '../../types/task';
@@ -44,6 +45,31 @@ export default function MyTasksScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
+
+  // Poster memo editing
+  const [memoTaskId, setMemoTaskId] = useState<string | null>(null);
+  const [memoDraft, setMemoDraft] = useState('');
+  const [memoSaving, setMemoSaving] = useState(false);
+
+  const openMemo = useCallback((task: Task) => {
+    setMemoTaskId(task.id);
+    setMemoDraft(task.posterMemo || '');
+  }, []);
+
+  const handleSaveMemo = useCallback(async () => {
+    if (!memoTaskId) return;
+    setMemoSaving(true);
+    try {
+      const memo = memoDraft.trim() === '' ? null : memoDraft.trim();
+      await taskService.updateMemo(memoTaskId, memo);
+      setTasks((prev) => prev.map((t) => (t.id === memoTaskId ? { ...t, posterMemo: memo } : t)));
+      setMemoTaskId(null);
+    } catch {
+      await appDialog.alert({ message: '保存备注失败，请重试' });
+    } finally {
+      setMemoSaving(false);
+    }
+  }, [memoTaskId, memoDraft]);
 
   const fetchMyTasks = useCallback(async () => {
     try {
@@ -113,6 +139,7 @@ export default function MyTasksScreen() {
     .reduce((sum, t) => sum + t.intentCount, 0);
 
   return (
+    <>
     <FlatList
       data={tasks}
       keyExtractor={(item) => item.id}
@@ -158,6 +185,26 @@ export default function MyTasksScreen() {
               <Text variant="bodySmall" style={{ color: theme.colors.outline }}>
                 {item.intentCount} 人申请 · {formatRelativeTime(item.createdAt)}
               </Text>
+            </View>
+
+            {/* Poster-only private memo */}
+            <View style={styles.memoRow}>
+              <Icon source="note-text-outline" size={16} color="#9E9E9E" />
+              <Text
+                variant="bodySmall"
+                style={[styles.memoText, !item.posterMemo && styles.memoPlaceholder]}
+                numberOfLines={2}
+              >
+                {item.posterMemo || '私人备注（仅你可见）'}
+              </Text>
+              <Button
+                mode="text"
+                compact
+                onPress={() => openMemo(item)}
+                accessibilityLabel={item.posterMemo ? '编辑备注' : '添加备注'}
+              >
+                {item.posterMemo ? '编辑' : '添加'}
+              </Button>
             </View>
 
             {/* Status action buttons */}
@@ -284,6 +331,37 @@ export default function MyTasksScreen() {
         </Card>
       )}
     />
+
+    <Portal>
+      <Dialog visible={memoTaskId !== null} onDismiss={() => setMemoTaskId(null)}>
+        <Dialog.Title>私人备注</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodySmall" style={styles.memoDialogHint}>
+            仅你自己可见，接单人和其他人都看不到。
+          </Text>
+          <TextInput
+            mode="outlined"
+            value={memoDraft}
+            onChangeText={setMemoDraft}
+            multiline
+            numberOfLines={4}
+            maxLength={1000}
+            placeholder="记录这个任务的备注、待办、联系细节…"
+            accessibilityLabel="备注输入框"
+            right={<TextInput.Affix text={`${memoDraft.length}/1000`} />}
+          />
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={() => setMemoTaskId(null)} disabled={memoSaving}>
+            取消
+          </Button>
+          <Button onPress={handleSaveMemo} loading={memoSaving} disabled={memoSaving}>
+            保存
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+    </>
   );
 }
 
@@ -313,6 +391,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  memoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    gap: 6,
+  },
+  memoText: {
+    flex: 1,
+    color: '#616161',
+  },
+  memoPlaceholder: {
+    color: '#BDBDBD',
+    fontStyle: 'italic',
+  },
+  memoDialogHint: {
+    color: '#9E9E9E',
+    marginBottom: 10,
   },
   actionRow: {
     flexDirection: 'row',

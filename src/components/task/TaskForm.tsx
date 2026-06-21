@@ -22,7 +22,6 @@ import {
   useTheme,
   HelperText,
   Menu,
-  TouchableRipple,
 } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +29,7 @@ import { createTaskFormSchema, CreateTaskFormData } from '../../utils/validation
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { TaskType } from '../../types/task';
 import LocationPicker, { LocationValue } from './LocationPicker';
+import TaskImageUploader from './TaskImageUploader';
 
 // Conditionally import DateTimePicker (not available on web)
 let DateTimePicker: any = null;
@@ -58,6 +58,20 @@ const TASK_TYPE_OPTIONS: { value: TaskType; label: string }[] = [
   { value: 'other', label: TASK_TYPE_LABELS.other },
 ];
 
+const REWARD_UNIT_OPTIONS: { value: 'once' | 'hour' | 'day' | 'month'; label: string }[] = [
+  { value: 'once', label: '次' },
+  { value: 'hour', label: '小时' },
+  { value: 'day', label: '日' },
+  { value: 'month', label: '月' },
+];
+
+const DURATION_UNIT_OPTIONS: { value: 'once' | 'day' | 'week' | 'month'; label: string }[] = [
+  { value: 'once', label: '次' },
+  { value: 'day', label: '日' },
+  { value: 'week', label: '周' },
+  { value: 'month', label: '月' },
+];
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps) {
@@ -66,6 +80,9 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
   const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [moreVisible, setMoreVisible] = useState(false);
+  const [rewardUnitMenu, setRewardUnitMenu] = useState(false);
+  const [durationUnitMenu, setDurationUnitMenu] = useState(false);
 
   const {
     control,
@@ -85,6 +102,13 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
       },
       deadline: '',
       reward: undefined,
+      rewardUnit: 'once',
+      images: [],
+      headcount: undefined,
+      startTime: '',
+      durationHours: undefined,
+      durationUnit: undefined,
+      contactMethod: '',
     },
     mode: 'onBlur',
   });
@@ -168,7 +192,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
               visible={typeMenuVisible}
               onDismiss={() => setTypeMenuVisible(false)}
               anchor={
-                <TouchableRipple
+                <Pressable
                   onPress={() => setTypeMenuVisible(true)}
                   disabled={isLoading}
                   accessibilityLabel="任务类型选择"
@@ -185,7 +209,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                     pointerEvents="none"
                     accessibilityLabel="任务类型"
                   />
-                </TouchableRipple>
+                </Pressable>
               }
               anchorPosition="bottom"
             >
@@ -406,55 +430,314 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
         )}
       />
 
-      {/* Reward Field (Requirement 4.6: 0.01-99999.99) */}
-      <Controller
-        control={control}
-        name="reward"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <View style={styles.fieldContainer}>
-            <TextInput
-              label="报酬金额 *"
-              placeholder="0.01 - 99999.99"
-              value={value !== undefined && value !== null ? String(value) : ''}
-              onChangeText={(text) => {
-                // Allow empty string, valid numbers, and partial decimal input
-                if (text === '') {
-                  onChange(undefined);
-                  return;
-                }
-                // Allow partial input like "1." or "0."
-                if (/^\d*\.?\d{0,2}$/.test(text)) {
-                  const num = parseFloat(text);
-                  if (!isNaN(num)) {
-                    onChange(num);
-                  } else if (text === '.' || text.endsWith('.')) {
-                    // Keep the text but don't parse yet
-                    onChange(0);
+      {/* Reward + Unit on one row: [金额] / [单位] */}
+      <View style={styles.rewardRow}>
+        <Controller
+          control={control}
+          name="reward"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <View style={[styles.fieldContainer, styles.rewardAmountField]}>
+              <TextInput
+                label="报酬金额 *"
+                placeholder="0 - 100000000"
+                value={value !== undefined && value !== null ? String(value) : ''}
+                onChangeText={(text) => {
+                  if (text === '') {
+                    onChange(undefined);
+                    return;
                   }
+                  if (/^\d+$/.test(text)) {
+                    const num = parseInt(text, 10);
+                    if (!isNaN(num)) onChange(num);
+                  }
+                }}
+                onBlur={onBlur}
+                mode="outlined"
+                keyboardType="number-pad"
+                error={!!errors.reward}
+                disabled={isLoading}
+                left={<TextInput.Icon icon="currency-jpy" />}
+                right={<TextInput.Affix text="円" />}
+                accessibilityLabel="报酬金额输入框"
+                accessibilityHint="请输入报酬金额，整数，范围0到100000000円"
+              />
+              {errors.reward && (
+                <HelperText type="error" visible accessibilityLabel="报酬金额错误提示">
+                  {errors.reward.message}
+                </HelperText>
+              )}
+            </View>
+          )}
+        />
+
+        <Text style={styles.slash}>/</Text>
+
+        <Controller
+          control={control}
+          name="rewardUnit"
+          render={({ field: { onChange, value } }) => (
+            <View style={[styles.fieldContainer, styles.rewardUnitField]}>
+              <Menu
+                visible={rewardUnitMenu}
+                onDismiss={() => setRewardUnitMenu(false)}
+                anchor={
+                  <Pressable
+                    onPress={() => setRewardUnitMenu(true)}
+                    disabled={isLoading}
+                    accessibilityLabel="报酬单位选择"
+                    accessibilityRole="button"
+                  >
+                    <TextInput
+                      label="单位"
+                      value={REWARD_UNIT_OPTIONS.find((o) => o.value === value)?.label || '次'}
+                      mode="outlined"
+                      editable={false}
+                      right={<TextInput.Icon icon="chevron-down" onPress={() => setRewardUnitMenu(true)} />}
+                      pointerEvents="none"
+                      accessibilityLabel="报酬单位"
+                    />
+                  </Pressable>
                 }
-              }}
-              onBlur={onBlur}
-              mode="outlined"
-              keyboardType="decimal-pad"
-              error={!!errors.reward}
-              disabled={isLoading}
-              left={<TextInput.Icon icon="currency-cny" />}
-              right={<TextInput.Affix text="元" />}
-              accessibilityLabel="报酬金额输入框"
-              accessibilityHint="请输入报酬金额，范围0.01到99999.99元"
-            />
-            {errors.reward && (
-              <HelperText
-                type="error"
-                visible={!!errors.reward}
-                accessibilityLabel="报酬金额错误提示"
+                anchorPosition="bottom"
               >
-                {errors.reward.message}
-              </HelperText>
+                {REWARD_UNIT_OPTIONS.map((option) => (
+                  <Menu.Item
+                    key={option.value}
+                    onPress={() => {
+                      onChange(option.value);
+                      setRewardUnitMenu(false);
+                    }}
+                    title={option.label}
+                    accessibilityLabel={`选择${option.label}`}
+                  />
+                ))}
+              </Menu>
+            </View>
+          )}
+        />
+      </View>
+
+      {/* More Options (collapsible) */}
+      <Button
+        mode="text"
+        icon={moreVisible ? 'chevron-up' : 'chevron-down'}
+        onPress={() => setMoreVisible((v) => !v)}
+        style={styles.moreToggle}
+        contentStyle={styles.moreToggleContent}
+        accessibilityLabel={moreVisible ? '收起更多选项' : '展开更多选项'}
+      >
+        {moreVisible ? '收起更多选项' : '更多选项（图片 / 人数 / 时间 / 联系方式）'}
+      </Button>
+
+      {moreVisible && (
+        <View style={styles.moreSection}>
+          {/* Task Images */}
+          <Controller
+            control={control}
+            name="images"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.fieldContainer}>
+                <TaskImageUploader
+                  value={(value as string[]) || []}
+                  onChange={onChange}
+                  disabled={isLoading}
+                  max={9}
+                />
+              </View>
             )}
+          />
+
+          {/* Headcount */}
+          <Controller
+            control={control}
+            name="headcount"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.fieldContainer}>
+                <TextInput
+                  label="招募人数（可选，默认1）"
+                  placeholder="1"
+                  value={value !== undefined && value !== null ? String(value) : ''}
+                  onChangeText={(text) => {
+                    if (text === '') {
+                      onChange(undefined);
+                      return;
+                    }
+                    if (/^\d+$/.test(text)) {
+                      const num = parseInt(text, 10);
+                      if (!isNaN(num)) onChange(num);
+                    }
+                  }}
+                  mode="outlined"
+                  keyboardType="number-pad"
+                  disabled={isLoading}
+                  left={<TextInput.Icon icon="account-group-outline" />}
+                  right={<TextInput.Affix text="人" />}
+                  error={!!errors.headcount}
+                  accessibilityLabel="招募人数输入框"
+                />
+                {errors.headcount && (
+                  <HelperText type="error" visible>
+                    {errors.headcount.message}
+                  </HelperText>
+                )}
+              </View>
+            )}
+          />
+
+          {/* Start Time (optional) */}
+          <Controller
+            control={control}
+            name="startTime"
+            render={({ field: { onChange, value } }) => (
+              <View style={styles.fieldContainer}>
+                <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
+                  ⏱ 预计开始时间（可选）
+                </Text>
+                {Platform.OS === 'web' ? (
+                  <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="date"
+                      value={value ? String(value).slice(0, 10) : ''}
+                      onChange={(e: any) => {
+                        const timeStr = value ? String(value).slice(11, 16) : '12:00';
+                        onChange(e.target.value ? `${e.target.value}T${timeStr}` : '');
+                      }}
+                      min={new Date().toISOString().slice(0, 10)}
+                      disabled={isLoading}
+                      style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
+                      aria-label="选择开始日期"
+                    />
+                    <input
+                      type="time"
+                      value={value ? String(value).slice(11, 16) : ''}
+                      onChange={(e: any) => {
+                        const dateStr = value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+                        onChange(`${dateStr}T${e.target.value}`);
+                      }}
+                      disabled={isLoading}
+                      style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
+                      aria-label="选择开始时间"
+                    />
+                  </View>
+                ) : (
+                  <TextInput
+                    label="开始时间（YYYY-MM-DD HH:mm）"
+                    value={value ? formatDeadlineDisplay(String(value)) : ''}
+                    mode="outlined"
+                    editable={false}
+                    left={<TextInput.Icon icon="clock-start" />}
+                    placeholder="可在网页端选择"
+                    accessibilityLabel="预计开始时间"
+                  />
+                )}
+              </View>
+            )}
+          />
+
+          {/* Duration: hours / unit */}
+          <View style={styles.durationRow}>
+            <Controller
+              control={control}
+              name="durationHours"
+              render={({ field: { onChange, value } }) => (
+                <View style={[styles.fieldContainer, styles.durationHoursField]}>
+                  <TextInput
+                    label="预计时长（可选）"
+                    placeholder="如 2.5"
+                    value={value !== undefined && value !== null ? String(value) : ''}
+                    onChangeText={(text) => {
+                      if (text === '') {
+                        onChange(undefined);
+                        return;
+                      }
+                      if (/^\d*\.?\d{0,1}$/.test(text)) {
+                        const num = parseFloat(text);
+                        if (!isNaN(num)) onChange(num);
+                      }
+                    }}
+                    mode="outlined"
+                    keyboardType="decimal-pad"
+                    disabled={isLoading}
+                    right={<TextInput.Affix text="小时" />}
+                    accessibilityLabel="预计时长小时数"
+                  />
+                </View>
+              )}
+            />
+            <Text style={styles.slash}>/</Text>
+            <Controller
+              control={control}
+              name="durationUnit"
+              render={({ field: { onChange, value } }) => (
+                <View style={[styles.fieldContainer, styles.durationUnitField]}>
+                  <Menu
+                    visible={durationUnitMenu}
+                    onDismiss={() => setDurationUnitMenu(false)}
+                    anchor={
+                      <Pressable
+                        onPress={() => setDurationUnitMenu(true)}
+                        disabled={isLoading}
+                        accessibilityLabel="时长单位选择"
+                        accessibilityRole="button"
+                      >
+                        <TextInput
+                          label="单位"
+                          value={DURATION_UNIT_OPTIONS.find((o) => o.value === value)?.label || ''}
+                          mode="outlined"
+                          editable={false}
+                          right={<TextInput.Icon icon="chevron-down" onPress={() => setDurationUnitMenu(true)} />}
+                          pointerEvents="none"
+                          accessibilityLabel="时长单位"
+                        />
+                      </Pressable>
+                    }
+                    anchorPosition="bottom"
+                  >
+                    {DURATION_UNIT_OPTIONS.map((option) => (
+                      <Menu.Item
+                        key={option.value}
+                        onPress={() => {
+                          onChange(option.value);
+                          setDurationUnitMenu(false);
+                        }}
+                        title={option.label}
+                      />
+                    ))}
+                  </Menu>
+                </View>
+              )}
+            />
           </View>
-        )}
-      />
+
+          {/* Contact Method (free text) */}
+          <Controller
+            control={control}
+            name="contactMethod"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <View style={styles.fieldContainer}>
+                <TextInput
+                  label="联系方式（可选）"
+                  placeholder="如 LINE: xxx / 微信: xxx / 小红书: xxx"
+                  value={value || ''}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  mode="outlined"
+                  disabled={isLoading}
+                  maxLength={100}
+                  left={<TextInput.Icon icon="card-account-phone-outline" />}
+                  error={!!errors.contactMethod}
+                  accessibilityLabel="联系方式输入框"
+                />
+                {errors.contactMethod && (
+                  <HelperText type="error" visible>
+                    {errors.contactMethod.message}
+                  </HelperText>
+                )}
+              </View>
+            )}
+          />
+        </View>
+      )}
 
       {/* Submit Button (Requirement 4.3) */}
       <Button
@@ -504,5 +787,45 @@ const styles = StyleSheet.create({
   },
   submitButtonContent: {
     paddingVertical: 8,
+  },
+  moreToggle: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  moreToggleContent: {
+    flexDirection: 'row-reverse',
+  },
+  moreSection: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  rewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rewardAmountField: {
+    flex: 2,
+  },
+  rewardUnitField: {
+    flex: 1,
+  },
+  slash: {
+    fontSize: 20,
+    color: '#9E9E9E',
+    marginBottom: 4,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationHoursField: {
+    flex: 2,
+  },
+  durationUnitField: {
+    flex: 1,
   },
 });

@@ -12,7 +12,7 @@
  * - 5.7: Show empty state when no tasks available
  */
 
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import {
   View,
   FlatList,
@@ -34,6 +34,8 @@ import { LoadingIndicator } from '../../components/common/LoadingIndicator';
 import { HomeStackParamList } from '../../navigation/HomeStackNavigator';
 import { PAGINATION, TASK_TYPE_LABELS } from '../../utils/constants';
 import FilterBar from '../../components/task/FilterBar';
+import CityPickerModal from '../../components/task/CityPickerModal';
+import { JpPrefecture } from '../../utils/jpCities';
 
 type TaskListNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'TaskList'>;
 
@@ -44,6 +46,7 @@ type TaskListNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Tas
 export default function TaskListScreen() {
   const navigation = useNavigation<TaskListNavigationProp>();
   const isInitializedRef = useRef(false);
+  const [cityPickerVisible, setCityPickerVisible] = useState(false);
 
   const {
     tasks,
@@ -52,8 +55,10 @@ export default function TaskListScreen() {
     hasMore,
     userLocation,
     locationDenied,
+    manualCity,
     filter,
     initLocation,
+    setManualLocation,
     fetchTasks,
     loadMore,
     refresh,
@@ -129,6 +134,17 @@ export default function TaskListScreen() {
   const handleRetryLocation = useCallback(async () => {
     await initLocation();
   }, [initLocation]);
+
+  /**
+   * Handle manual city selection from the picker.
+   */
+  const handleSelectCity = useCallback(
+    (city: JpPrefecture) => {
+      setCityPickerVisible(false);
+      setManualLocation(city);
+    },
+    [setManualLocation]
+  );
 
   /**
    * Render individual task card.
@@ -209,6 +225,27 @@ export default function TaskListScreen() {
             </Button>
           </>
         )}
+
+        <Text style={styles.orDivider}>或</Text>
+        <Button
+          mode="outlined"
+          icon="city-variant-outline"
+          onPress={() => setCityPickerVisible(true)}
+          style={styles.cityButton}
+          accessibilityLabel="选择地区浏览任务"
+        >
+          选择地区浏览任务
+        </Button>
+        <Text style={styles.cityHint}>
+          不开启定位也可以浏览，选择一个地区即可查看该区域附近的任务
+        </Text>
+
+        <CityPickerModal
+          visible={cityPickerVisible}
+          selectedId={manualCity?.id ?? null}
+          onSelect={handleSelectCity}
+          onDismiss={() => setCityPickerVisible(false)}
+        />
       </View>
     );
   }
@@ -248,6 +285,31 @@ export default function TaskListScreen() {
 
   return (
     <View style={styles.container} accessibilityLabel="任务列表">
+      <View style={styles.locationBar}>
+        <Icon source="map-marker" size={16} color="#1565C0" />
+        <Text style={styles.locationBarText} numberOfLines={1}>
+          {manualCity ? `当前地区：${manualCity.nameJa}` : '当前位置：自动定位'}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setCityPickerVisible(true)}
+          style={styles.switchCityBtn}
+          accessibilityLabel="切换地区"
+          accessibilityRole="button"
+        >
+          <Text style={styles.switchCityText}>{manualCity ? '切换地区' : '选择地区'}</Text>
+        </TouchableOpacity>
+        {manualCity && (
+          <TouchableOpacity
+            onPress={handleRetryLocation}
+            style={styles.switchCityBtn}
+            accessibilityLabel="使用当前定位"
+            accessibilityRole="button"
+          >
+            <Text style={styles.switchCityText}>用定位</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <View style={styles.rangeHint}>
         <Text style={styles.rangeHintLabel}>📍 搜索范围：</Text>
         {[5, 10, 20, 50, 100].map((km) => (
@@ -318,6 +380,13 @@ export default function TaskListScreen() {
         accessibilityLabel="任务列表"
         accessibilityRole="list"
       />
+
+      <CityPickerModal
+        visible={cityPickerVisible}
+        selectedId={manualCity?.id ?? null}
+        onSelect={handleSelectCity}
+        onDismiss={() => setCityPickerVisible(false)}
+      />
     </View>
   );
 }
@@ -326,6 +395,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
+    gap: 4,
+  },
+  locationBarText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1565C0',
+    marginLeft: 2,
+  },
+  switchCityBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#E3F2FD',
+  },
+  switchCityText: {
+    fontSize: 12,
+    color: '#1976D2',
+    fontWeight: '600',
   },
   rangeHint: {
     backgroundColor: '#E3F2FD',
@@ -404,5 +500,20 @@ const styles = StyleSheet.create({
   },
   permissionButton: {
     marginTop: 24,
+  },
+  orDivider: {
+    marginTop: 20,
+    fontSize: 13,
+    color: '#9E9E9E',
+  },
+  cityButton: {
+    marginTop: 12,
+  },
+  cityHint: {
+    marginTop: 12,
+    fontSize: 12,
+    color: '#9E9E9E',
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

@@ -12,7 +12,7 @@ export interface UploadImageOptions {
   uri: string;
   fileName: string;
   mimeType: string;
-  folder?: 'avatars' | 'chats';
+  folder?: 'avatars' | 'chats' | 'tasks';
   onProgress?: (progress: number) => void;
 }
 

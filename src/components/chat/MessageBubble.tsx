@@ -25,6 +25,8 @@ export interface MessageBubbleProps {
   isMine: boolean;
   /** Callback when retry button is pressed for a failed message */
   onRetry?: (messageId: string) => void;
+  /** Callback when an image message is tapped (to open the full-screen viewer) */
+  onImagePress?: (url: string) => void;
 }
 
 /**
@@ -33,7 +35,7 @@ export interface MessageBubbleProps {
  * Memoized to prevent unnecessary re-renders in FlatList.
  */
 export const MessageBubble: React.FC<MessageBubbleProps> = memo(
-  ({ message, isMine, onRetry }) => {
+  ({ message, isMine, onRetry, onImagePress }) => {
     const isImage = message.type === 'image';
     const isFailed = message.status === 'failed';
     const isSending = message.status === 'sending';
@@ -86,12 +88,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = memo(
 
           {/* Image message content */}
           {isImage && message.imageUrl && (
-            <Image
-              source={{ uri: message.imageUrl }}
-              style={styles.messageImage}
-              resizeMode="cover"
-              accessibilityLabel="图片消息"
-            />
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => onImagePress?.(message.imageUrl as string)}
+              disabled={!onImagePress}
+              accessibilityLabel="图片消息，点击放大"
+              accessibilityRole="button"
+            >
+              <Image
+                source={{ uri: message.imageUrl }}
+                style={styles.messageImage}
+                resizeMode="cover"
+                accessibilityLabel="图片消息"
+              />
+            </TouchableOpacity>
           )}
 
           {/* Timestamp */}

@@ -42,6 +42,8 @@ export const API_ENDPOINTS = {
   TASK_INTENT_DELETE: (taskId: string, intentId: string) =>
     `/tasks/${taskId}/intents/${intentId}`,
   TASK_SELECT_HELPER: (id: string) => `/tasks/${id}/select-helper`,
+  TASK_START_CHAT: (id: string) => `/tasks/${id}/chat`,
+  TASK_MEMO: (id: string) => `/tasks/${id}/memo`,
 
   // Chat
   CHAT_SESSIONS: '/chat/sessions',
@@ -83,8 +85,8 @@ export const VALIDATION = {
   TASK_DESCRIPTION_MIN: 10,
   TASK_DESCRIPTION_MAX: 500,
   TASK_LOCATION_MAX: 100,
-  TASK_REWARD_MIN: 1000,
-  TASK_REWARD_MAX: 99999,
+  TASK_REWARD_MIN: 0,
+  TASK_REWARD_MAX: 100000000,
   INTENT_MESSAGE_MAX: 200,
   CHAT_MESSAGE_MAX: 1000,
   CHAT_IMAGE_MAX_SIZE_MB: 10,

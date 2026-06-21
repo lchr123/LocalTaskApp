@@ -49,6 +49,8 @@ export interface IntentCardProps {
   intent: Intent;
   /** Callback when the "选择" button is pressed */
   onSelect: (intent: Intent) => void;
+  /** Callback when the "聊一聊" button is pressed */
+  onChat?: (intent: Intent) => void;
   /** Whether selection is disabled (e.g., already selected or loading) */
   disabled?: boolean;
 }
@@ -57,7 +59,7 @@ export interface IntentCardProps {
  * IntentCard renders a single helper intent in the intent list.
  * Memoized to prevent unnecessary re-renders in FlatList.
  */
-export const IntentCard: React.FC<IntentCardProps> = memo(({ intent, onSelect, disabled }) => {
+export const IntentCard: React.FC<IntentCardProps> = memo(({ intent, onSelect, onChat, disabled }) => {
   const navigation = useNavigation();
   const isSelected = intent.status === 'selected';
   const isRejected = intent.status === 'rejected';
@@ -245,17 +247,31 @@ export const IntentCard: React.FC<IntentCardProps> = memo(({ intent, onSelect, d
           </Modal>
         </Portal>
 
-        {/* Select Button */}
+        {/* Action Buttons: 聊一聊 + 选择 (only for pending applicants) */}
         {showSelectButton && (
-          <Button
-            mode="contained"
-            onPress={() => onSelect(intent)}
-            style={styles.selectButton}
-            accessibilityLabel={`选择帮手 ${intent.helperNickname}`}
-            accessibilityHint="点击选择此帮手"
-          >
-            选择
-          </Button>
+          <View style={styles.selectRow}>
+            {onChat && (
+              <Button
+                mode="outlined"
+                onPress={() => onChat(intent)}
+                style={styles.chatButton}
+                icon="chat-outline"
+                accessibilityLabel={`与 ${intent.helperNickname} 聊一聊`}
+                accessibilityHint="点击与此申请人开始聊天"
+              >
+                聊一聊
+              </Button>
+            )}
+            <Button
+              mode="contained"
+              onPress={() => onSelect(intent)}
+              style={styles.selectButton}
+              accessibilityLabel={`选择帮手 ${intent.helperNickname}`}
+              accessibilityHint="点击选择此帮手"
+            >
+              选择
+            </Button>
+          </View>
         )}
       </Card.Content>
     </Card>
@@ -357,8 +373,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectButton: {
+    minWidth: 88,
+  },
+  selectRow: {
     marginTop: 12,
-    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+  },
+  chatButton: {
+    borderColor: '#1976D2',
   },
   profileButton: {
     marginTop: 4,

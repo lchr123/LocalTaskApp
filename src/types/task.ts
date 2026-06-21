@@ -1,5 +1,7 @@
 export type TaskType = 'delivery' | 'pet_care' | 'translation' | 'moving' | 'airport_transfer' | 'childcare' | 'other';
 export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled';
+export type RewardUnit = 'once' | 'hour' | 'day' | 'month';
+export type DurationUnit = 'once' | 'day' | 'week' | 'month';
 
 export interface Task {
   id: string;
@@ -14,6 +16,7 @@ export interface Task {
     longitude: number;
   };
   reward: number;
+  rewardUnit?: RewardUnit | null;
   deadline: string;
   status: TaskStatus;
   intentCount: number;
@@ -22,6 +25,13 @@ export interface Task {
   updatedAt?: string;
   hasReview?: boolean;
   distance?: number;
+  images?: string[];
+  headcount?: number;
+  startTime?: string | null;
+  contactMethod?: string | null;
+  durationHours?: number | null;
+  durationUnit?: DurationUnit | null;
+  posterMemo?: string | null;
 }
 
 export interface Intent {
@@ -46,6 +56,13 @@ export interface CreateTaskPayload {
   };
   reward: number;
   deadline: string;
+  rewardUnit?: RewardUnit | null;
+  images?: string[];
+  headcount?: number;
+  startTime?: string | null;
+  contactMethod?: string | null;
+  durationHours?: number | null;
+  durationUnit?: DurationUnit | null;
 }
 
 export interface TaskFilter {

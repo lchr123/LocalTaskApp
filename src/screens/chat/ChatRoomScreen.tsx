@@ -42,6 +42,7 @@ import { TaskType } from '../../types/task';
 import { MessageBubble } from '../../components/chat/MessageBubble';
 import { ChatInput } from '../../components/chat/ChatInput';
 import { LoadingIndicator } from '../../components/common/LoadingIndicator';
+import ImageViewerModal from '../../components/common/ImageViewerModal';
 import { uploadService } from '../../services/uploadService';
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 
@@ -61,6 +62,7 @@ function generateLocalId(): string {
 export default function ChatRoomScreen({ route, navigation }: Props) {
   const { sessionId, taskId, taskTitle, taskType } = route.params;
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const [viewerImage, setViewerImage] = React.useState<string | null>(null);
 
   // Stable empty references to avoid creating new objects on each render
   const emptyMessages: ChatMessage[] = React.useMemo(() => [], []);
@@ -211,6 +213,7 @@ export default function ChatRoomScreen({ route, navigation }: Props) {
         message={item}
         isMine={item.senderId === currentUserId}
         onRetry={handleRetry}
+        onImagePress={(url) => setViewerImage(url)}
       />
     ),
     [currentUserId, handleRetry]
@@ -323,6 +326,13 @@ export default function ChatRoomScreen({ route, navigation }: Props) {
         onSendText={handleSendText}
         onSendImage={handleSendImage}
         disabled={!isConnected}
+      />
+
+      {/* Full-screen image viewer */}
+      <ImageViewerModal
+        visible={viewerImage !== null}
+        images={viewerImage ? [viewerImage] : []}
+        onClose={() => setViewerImage(null)}
       />
     </KeyboardAvoidingView>
   );

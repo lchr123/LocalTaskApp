@@ -18,6 +18,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { useTaskStore } from '../../stores/taskStore';
 import { useChatStore } from '../../stores/chatStore';
+import { taskService } from '../../services/taskService';
 import { appDialog } from '../../stores/dialogStore';
 import { Intent } from '../../types/task';
 import { IntentCard } from '../../components/task/IntentCard';
@@ -25,7 +26,7 @@ import { LoadingIndicator, ErrorRetry, EmptyState } from '../../components/commo
 
 type Props = NativeStackScreenProps<TaskStackParamList, 'IntentList'>;
 
-export default function IntentListScreen({ route }: Props) {
+export default function IntentListScreen({ route, navigation }: Props) {
   const { taskId } = route.params;
 
   const {
@@ -65,8 +66,38 @@ export default function IntentListScreen({ route }: Props) {
         await selectHelper(taskId, intent.helperId);
         await fetchIntents(taskId);
         await fetchSessions();
-        setSnackbarMessage(`已选择 ${intent.helperNickname} 为帮手，对话已创建`);
-        setSnackbarVisible(true);
+
+        // A: locate the conversation created/existing for this task + helper
+        const session = useChatStore
+          .getState()
+          .sessions.find(
+            (s) => s.taskId === taskId && s.participantId === intent.helperId
+          );
+
+        // B: soft guidance — invite the poster to contact the helper now
+        const goChat = await appDialog.confirm({
+          title: '已选择帮手',
+          message: `已选择 ${intent.helperNickname}，现在去和 TA 聊一下任务细节吧！`,
+          confirmText: '去联系',
+          cancelText: '稍后',
+        });
+
+        if (goChat && session) {
+          // Cross-tab navigation: Tasks stack → Chat tab → ChatRoom
+          (navigation.getParent() as any)?.navigate('Chat', {
+            screen: 'ChatRoom',
+            params: {
+              sessionId: session.id,
+              taskId: session.taskId,
+              taskTitle: session.taskTitle,
+              taskType: session.taskType,
+            },
+          });
+        } else if (goChat && !session) {
+          // Fallback: session not yet resolved locally — point user to 消息 tab
+          setSnackbarMessage('对话已创建，请到「消息」中查看');
+          setSnackbarVisible(true);
+        }
       } catch {
         setSnackbarMessage('选择帮手失败，请重试');
         setSnackbarVisible(true);
@@ -74,13 +105,42 @@ export default function IntentListScreen({ route }: Props) {
         setIsSelecting(false);
       }
     },
-    [taskId, selectHelper, fetchIntents]
+    [taskId, selectHelper, fetchIntents, fetchSessions, navigation]
   );
 
   const handleRetry = useCallback(async () => {
     clearError();
     await fetchIntents(taskId);
   }, [taskId, fetchIntents, clearError]);
+
+  /**
+   * Start a chat with an applicant without selecting them (task stays open).
+   * Creates/reuses the session on the backend, then navigates to the chat room.
+   */
+  const handleChat = useCallback(
+    async (intent: Intent) => {
+      setIsSelecting(true);
+      try {
+        const session = await taskService.startChatWithApplicant(taskId, intent.helperId);
+        await fetchSessions();
+        (navigation.getParent() as any)?.navigate('Chat', {
+          screen: 'ChatRoom',
+          params: {
+            sessionId: session.sessionId,
+            taskId: session.taskId,
+            taskTitle: session.taskTitle,
+            taskType: session.taskType,
+          },
+        });
+      } catch {
+        setSnackbarMessage('创建会话失败，请重试');
+        setSnackbarVisible(true);
+      } finally {
+        setIsSelecting(false);
+      }
+    },
+    [taskId, fetchSessions, navigation]
+  );
 
   const handleDismissSnackbar = useCallback(() => {
     setSnackbarVisible(false);
@@ -91,10 +151,11 @@ export default function IntentListScreen({ route }: Props) {
       <IntentCard
         intent={item}
         onSelect={handleSelect}
+        onChat={handleChat}
         disabled={isSelecting || isLoading}
       />
     ),
-    [handleSelect, isSelecting, isLoading]
+    [handleSelect, handleChat, isSelecting, isLoading]
   );
 
   const keyExtractor = useCallback((item: Intent) => item.id, []);

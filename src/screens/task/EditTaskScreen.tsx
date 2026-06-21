@@ -14,13 +14,28 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import { Text, TextInput, Button, HelperText, Snackbar, useTheme, ActivityIndicator } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Snackbar, useTheme, ActivityIndicator, Menu } from 'react-native-paper';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TaskStackParamList } from '../../navigation/TaskStackNavigator';
 import { taskService } from '../../services/taskService';
 import { Task } from '../../types/task';
 import LocationPicker, { LocationValue } from '../../components/task/LocationPicker';
+import TaskImageUploader from '../../components/task/TaskImageUploader';
 import { VALIDATION } from '../../utils/constants';
+
+const REWARD_UNIT_OPTIONS: { value: 'once' | 'hour' | 'day' | 'month'; label: string }[] = [
+  { value: 'once', label: '次' },
+  { value: 'hour', label: '小时' },
+  { value: 'day', label: '日' },
+  { value: 'month', label: '月' },
+];
+
+const DURATION_UNIT_OPTIONS: { value: 'once' | 'day' | 'week' | 'month'; label: string }[] = [
+  { value: 'once', label: '次' },
+  { value: 'day', label: '日' },
+  { value: 'week', label: '周' },
+  { value: 'month', label: '月' },
+];
 
 // Conditionally import DateTimePicker (not available on web)
 let DateTimePicker: any = null;
@@ -52,6 +67,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
 
   const [description, setDescription] = useState('');
   const [reward, setReward] = useState('');
+  const [rewardUnit, setRewardUnit] = useState<'once' | 'hour' | 'day' | 'month'>('once');
   const [deadline, setDeadline] = useState('');
   const [initialDeadline, setInitialDeadline] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -62,6 +78,17 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     latitude: 0,
     longitude: 0,
   });
+
+  // More options
+  const [images, setImages] = useState<string[]>([]);
+  const [headcount, setHeadcount] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [durationHours, setDurationHours] = useState('');
+  const [durationUnit, setDurationUnit] = useState<'once' | 'day' | 'week' | 'month' | ''>('');
+  const [contactMethod, setContactMethod] = useState('');
+  const [moreVisible, setMoreVisible] = useState(false);
+  const [rewardUnitMenu, setRewardUnitMenu] = useState(false);
+  const [durationUnitMenu, setDurationUnitMenu] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);  const [successVisible, setSuccessVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -74,6 +101,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
         setTask(taskData);
         setDescription(taskData.description);
         setReward(String(taskData.reward));
+        setRewardUnit((taskData.rewardUnit as any) || 'once');
         setDeadline(taskData.deadline ? toLocalDatetimeString(new Date(taskData.deadline)) : '');
         setInitialDeadline(taskData.deadline ? toLocalDatetimeString(new Date(taskData.deadline)) : '');
         setLocation({
@@ -81,6 +109,12 @@ export default function EditTaskScreen({ route, navigation }: Props) {
           latitude: taskData.location.latitude,
           longitude: taskData.location.longitude,
         });
+        setImages(taskData.images || []);
+        setHeadcount(taskData.headcount != null ? String(taskData.headcount) : '');
+        setStartTime(taskData.startTime ? toLocalDatetimeString(new Date(taskData.startTime)) : '');
+        setDurationHours(taskData.durationHours != null ? String(taskData.durationHours) : '');
+        setDurationUnit((taskData.durationUnit as any) || '');
+        setContactMethod(taskData.contactMethod || '');
       } catch {
         setLoadError('无法加载任务信息');
       } finally {
@@ -100,7 +134,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
   const rewardNum = parseFloat(reward);
   const rewardError =
     reward !== '' && (isNaN(rewardNum) || rewardNum < VALIDATION.TASK_REWARD_MIN || rewardNum > VALIDATION.TASK_REWARD_MAX)
-      ? `报酬金额范围为${VALIDATION.TASK_REWARD_MIN}~${VALIDATION.TASK_REWARD_MAX}元`
+      ? `报酬金额范围为${VALIDATION.TASK_REWARD_MIN}~${VALIDATION.TASK_REWARD_MAX}円`
       : reward !== '' && !isNaN(rewardNum) && !Number.isInteger(rewardNum)
         ? '报酬金额必须为整数'
         : null;
@@ -146,13 +180,21 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     setErrorMessage(null);
 
     try {
-      const payload: { description?: string; reward?: number; location?: LocationValue; deadline?: string } = {};
+      const payload: {
+        description?: string; reward?: number; location?: LocationValue; deadline?: string;
+        rewardUnit?: string | null; images?: string[]; headcount?: number;
+        startTime?: string | null; contactMethod?: string | null;
+        durationHours?: number | null; durationUnit?: string | null;
+      } = {};
 
       if (description !== task.description) {
         payload.description = description;
       }
       if (rewardNum !== task.reward) {
         payload.reward = rewardNum;
+      }
+      if ((task.rewardUnit || 'once') !== rewardUnit) {
+        payload.rewardUnit = rewardUnit;
       }
       if (
         location.address !== task.location.address ||
@@ -163,6 +205,32 @@ export default function EditTaskScreen({ route, navigation }: Props) {
       }
       if (deadline !== initialDeadline) {
         payload.deadline = new Date(deadline).toISOString();
+      }
+
+      // More options
+      const initialImages = task.images || [];
+      if (JSON.stringify(images) !== JSON.stringify(initialImages)) {
+        payload.images = images;
+      }
+      const headcountNum = headcount === '' ? 1 : parseInt(headcount, 10);
+      if (!isNaN(headcountNum) && headcountNum !== (task.headcount ?? 1)) {
+        payload.headcount = headcountNum;
+      }
+      const initialStartTime = task.startTime ? toLocalDatetimeString(new Date(task.startTime)) : '';
+      if (startTime !== initialStartTime) {
+        payload.startTime = startTime ? new Date(startTime).toISOString() : null;
+      }
+      const durationNum = durationHours === '' ? null : parseFloat(durationHours);
+      if (durationNum !== (task.durationHours ?? null)) {
+        payload.durationHours = durationNum;
+      }
+      const normalizedDurationUnit = durationUnit === '' ? null : durationUnit;
+      if (normalizedDurationUnit !== (task.durationUnit ?? null)) {
+        payload.durationUnit = normalizedDurationUnit;
+      }
+      const normalizedContact = contactMethod.trim() === '' ? null : contactMethod.trim();
+      if (normalizedContact !== (task.contactMethod ?? null)) {
+        payload.contactMethod = normalizedContact;
       }
 
       if (Object.keys(payload).length === 0) {
@@ -183,7 +251,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [canSubmit, description, rewardNum, location, deadline, initialDeadline, task, navigation]);
+  }, [canSubmit, description, rewardNum, rewardUnit, location, deadline, initialDeadline, images, headcount, startTime, durationHours, durationUnit, contactMethod, task, navigation]);
 
   // Loading state
   if (isLoadingTask) {
@@ -265,29 +333,70 @@ export default function EditTaskScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {/* Reward */}
-        <View style={styles.fieldContainer}>
-          <TextInput
-            label="报酬金额 *"
-            value={reward}
-            onChangeText={(text) => {
-              if (text === '' || /^\d*$/.test(text)) {
-                setReward(text);
+        {/* Reward + Unit on one row */}
+        <View style={styles.rewardRow}>
+          <View style={[styles.fieldContainer, styles.rewardAmountField]}>
+            <TextInput
+              label="报酬金额 *"
+              value={reward}
+              onChangeText={(text) => {
+                if (text === '' || /^\d*$/.test(text)) {
+                  setReward(text);
+                }
+              }}
+              mode="outlined"
+              keyboardType="number-pad"
+              error={!!rewardError}
+              disabled={isSubmitting}
+              left={<TextInput.Icon icon="currency-jpy" />}
+              right={<TextInput.Affix text="円" />}
+              accessibilityLabel="报酬金额输入框"
+            />
+            {rewardError && (
+              <HelperText type="error" visible>
+                {rewardError}
+              </HelperText>
+            )}
+          </View>
+
+          <Text style={styles.slash}>/</Text>
+
+          <View style={[styles.fieldContainer, styles.rewardUnitField]}>
+            <Menu
+              visible={rewardUnitMenu}
+              onDismiss={() => setRewardUnitMenu(false)}
+              anchor={
+                <Pressable
+                  onPress={() => setRewardUnitMenu(true)}
+                  disabled={isSubmitting}
+                  accessibilityLabel="报酬单位选择"
+                  accessibilityRole="button"
+                >
+                  <TextInput
+                    label="单位"
+                    value={REWARD_UNIT_OPTIONS.find((o) => o.value === rewardUnit)?.label || '次'}
+                    mode="outlined"
+                    editable={false}
+                    right={<TextInput.Icon icon="chevron-down" onPress={() => setRewardUnitMenu(true)} />}
+                    pointerEvents="none"
+                    accessibilityLabel="报酬单位"
+                  />
+                </Pressable>
               }
-            }}
-            mode="outlined"
-            keyboardType="number-pad"
-            error={!!rewardError}
-            disabled={isSubmitting}
-            left={<TextInput.Icon icon="currency-cny" />}
-            right={<TextInput.Affix text="元" />}
-            accessibilityLabel="报酬金额输入框"
-          />
-          {rewardError && (
-            <HelperText type="error" visible>
-              {rewardError}
-            </HelperText>
-          )}
+              anchorPosition="bottom"
+            >
+              {REWARD_UNIT_OPTIONS.map((option) => (
+                <Menu.Item
+                  key={option.value}
+                  onPress={() => {
+                    setRewardUnit(option.value);
+                    setRewardUnitMenu(false);
+                  }}
+                  title={option.label}
+                />
+              ))}
+            </Menu>
+          </View>
         </View>
 
         {/* Location */}
@@ -414,6 +523,157 @@ export default function EditTaskScreen({ route, navigation }: Props) {
           )}
         </View>
 
+        {/* More Options (collapsible) */}
+        <Button
+          mode="text"
+          icon={moreVisible ? 'chevron-up' : 'chevron-down'}
+          onPress={() => setMoreVisible((v) => !v)}
+          style={styles.moreToggle}
+          contentStyle={styles.moreToggleContent}
+          accessibilityLabel={moreVisible ? '收起更多选项' : '展开更多选项'}
+        >
+          {moreVisible ? '收起更多选项' : '更多选项（图片 / 人数 / 时间 / 联系方式）'}
+        </Button>
+
+        {moreVisible && (
+          <View style={styles.moreSection}>
+            {/* Images */}
+            <View style={styles.fieldContainer}>
+              <TaskImageUploader value={images} onChange={setImages} disabled={isSubmitting} max={9} />
+            </View>
+
+            {/* Headcount */}
+            <View style={styles.fieldContainer}>
+              <TextInput
+                label="招募人数（可选，默认1）"
+                value={headcount}
+                onChangeText={(text) => {
+                  if (text === '' || /^\d+$/.test(text)) setHeadcount(text);
+                }}
+                mode="outlined"
+                keyboardType="number-pad"
+                disabled={isSubmitting}
+                left={<TextInput.Icon icon="account-group-outline" />}
+                right={<TextInput.Affix text="人" />}
+                accessibilityLabel="招募人数输入框"
+              />
+            </View>
+
+            {/* Start Time */}
+            <View style={styles.fieldContainer}>
+              <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
+                ⏱ 预计开始时间（可选）
+              </Text>
+              {Platform.OS === 'web' ? (
+                <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="date"
+                    value={startTime ? startTime.slice(0, 10) : ''}
+                    onChange={(e: any) => {
+                      const timeStr = startTime ? startTime.slice(11, 16) : '12:00';
+                      setStartTime(e.target.value ? `${e.target.value}T${timeStr}` : '');
+                    }}
+                    disabled={isSubmitting}
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
+                    aria-label="选择开始日期"
+                  />
+                  <input
+                    type="time"
+                    value={startTime ? startTime.slice(11, 16) : ''}
+                    onChange={(e: any) => {
+                      const dateStr = startTime ? startTime.slice(0, 10) : new Date().toISOString().slice(0, 10);
+                      setStartTime(`${dateStr}T${e.target.value}`);
+                    }}
+                    disabled={isSubmitting}
+                    style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
+                    aria-label="选择开始时间"
+                  />
+                </View>
+              ) : (
+                <TextInput
+                  label="开始时间"
+                  value={startTime ? formatDeadlineDisplay(startTime) : ''}
+                  mode="outlined"
+                  editable={false}
+                  left={<TextInput.Icon icon="clock-start" />}
+                  placeholder="可在网页端选择"
+                  accessibilityLabel="预计开始时间"
+                />
+              )}
+            </View>
+
+            {/* Duration: hours / unit */}
+            <View style={styles.durationRow}>
+              <View style={[styles.fieldContainer, styles.durationHoursField]}>
+                <TextInput
+                  label="预计时长（可选）"
+                  value={durationHours}
+                  onChangeText={(text) => {
+                    if (text === '' || /^\d*\.?\d{0,1}$/.test(text)) setDurationHours(text);
+                  }}
+                  mode="outlined"
+                  keyboardType="decimal-pad"
+                  disabled={isSubmitting}
+                  right={<TextInput.Affix text="小时" />}
+                  accessibilityLabel="预计时长小时数"
+                />
+              </View>
+              <Text style={styles.slash}>/</Text>
+              <View style={[styles.fieldContainer, styles.durationUnitField]}>
+                <Menu
+                  visible={durationUnitMenu}
+                  onDismiss={() => setDurationUnitMenu(false)}
+                  anchor={
+                    <Pressable
+                      onPress={() => setDurationUnitMenu(true)}
+                      disabled={isSubmitting}
+                      accessibilityLabel="时长单位选择"
+                      accessibilityRole="button"
+                    >
+                      <TextInput
+                        label="单位"
+                        value={DURATION_UNIT_OPTIONS.find((o) => o.value === durationUnit)?.label || ''}
+                        mode="outlined"
+                        editable={false}
+                        right={<TextInput.Icon icon="chevron-down" onPress={() => setDurationUnitMenu(true)} />}
+                        pointerEvents="none"
+                        accessibilityLabel="时长单位"
+                      />
+                    </Pressable>
+                  }
+                  anchorPosition="bottom"
+                >
+                  {DURATION_UNIT_OPTIONS.map((option) => (
+                    <Menu.Item
+                      key={option.value}
+                      onPress={() => {
+                        setDurationUnit(option.value);
+                        setDurationUnitMenu(false);
+                      }}
+                      title={option.label}
+                    />
+                  ))}
+                </Menu>
+              </View>
+            </View>
+
+            {/* Contact Method */}
+            <View style={styles.fieldContainer}>
+              <TextInput
+                label="联系方式（可选）"
+                placeholder="如 LINE: xxx / 微信: xxx / 小红书: xxx"
+                value={contactMethod}
+                onChangeText={setContactMethod}
+                mode="outlined"
+                disabled={isSubmitting}
+                maxLength={100}
+                left={<TextInput.Icon icon="card-account-phone-outline" />}
+                accessibilityLabel="联系方式输入框"
+              />
+            </View>
+          </View>
+        )}
+
         {/* Submit */}
         <Button
           mode="contained"
@@ -471,6 +731,46 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: 12,
+  },
+  rewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rewardAmountField: {
+    flex: 2,
+  },
+  rewardUnitField: {
+    flex: 1,
+  },
+  slash: {
+    fontSize: 20,
+    color: '#9E9E9E',
+    marginBottom: 4,
+  },
+  moreToggle: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  moreToggleContent: {
+    flexDirection: 'row-reverse',
+  },
+  moreSection: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationHoursField: {
+    flex: 2,
+  },
+  durationUnitField: {
+    flex: 1,
   },
   fieldFooter: {
     flexDirection: 'row',

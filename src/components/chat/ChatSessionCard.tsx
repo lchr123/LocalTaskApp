@@ -8,13 +8,14 @@
  * - 7.9: Organize chat sessions by task, show task title and latest message preview
  */
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Avatar, Badge, Chip, Text } from 'react-native-paper';
 import { ChatSession } from '../../types/chat';
 import { formatRelativeTime, truncateText } from '../../utils/formatters';
 import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { TaskType } from '../../types/task';
+import { UserProfileDialog } from '../common/UserProfileDialog';
 
 /** Maximum characters for message preview */
 const MESSAGE_PREVIEW_MAX_LENGTH = 40;
@@ -32,6 +33,8 @@ export interface ChatSessionCardProps {
  */
 export const ChatSessionCard: React.FC<ChatSessionCardProps> = memo(
   ({ session, onPress }) => {
+    const [profileVisible, setProfileVisible] = useState(false);
+
     const messagePreview = session.lastMessage
       ? truncateText(session.lastMessage, MESSAGE_PREVIEW_MAX_LENGTH)
       : '暂无消息';
@@ -41,16 +44,19 @@ export const ChatSessionCard: React.FC<ChatSessionCardProps> = memo(
       : '';
 
     return (
-      <TouchableOpacity
-        onPress={() => onPress(session)}
-        activeOpacity={0.7}
+      <View
         style={styles.container}
         accessibilityLabel={`聊天会话: ${session.taskTitle}, 对方: ${session.participantNickname}`}
-        accessibilityRole="button"
-        accessibilityHint="点击进入聊天"
       >
-        {/* Avatar */}
-        <View style={styles.avatarContainer}>
+        {/* Avatar — tap to view participant profile */}
+        <TouchableOpacity
+          onPress={() => setProfileVisible(true)}
+          activeOpacity={0.7}
+          style={styles.avatarContainer}
+          accessibilityLabel={`查看${session.participantNickname}的资料`}
+          accessibilityRole="button"
+          accessibilityHint="点击查看接单人详细资料"
+        >
           {session.participantAvatarUrl ? (
             <Avatar.Image
               size={48}
@@ -73,10 +79,17 @@ export const ChatSessionCard: React.FC<ChatSessionCardProps> = memo(
               {session.unreadCount > 99 ? '99+' : session.unreadCount}
             </Badge>
           )}
-        </View>
+        </TouchableOpacity>
 
-        {/* Content */}
-        <View style={styles.content}>
+        {/* Content — tap to enter the chat */}
+        <TouchableOpacity
+          onPress={() => onPress(session)}
+          activeOpacity={0.7}
+          style={styles.content}
+          accessibilityLabel={`进入与${session.participantNickname}的聊天`}
+          accessibilityRole="button"
+          accessibilityHint="点击进入聊天"
+        >
           {/* Top row: task type chip + task title + time */}
           <View style={styles.topRow}>
             <View style={styles.titleRow}>
@@ -124,8 +137,15 @@ export const ChatSessionCard: React.FC<ChatSessionCardProps> = memo(
           >
             {messagePreview}
           </Text>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+
+        <UserProfileDialog
+          visible={profileVisible}
+          userId={session.participantId}
+          nickname={session.participantNickname}
+          onDismiss={() => setProfileVisible(false)}
+        />
+      </View>
     );
   }
 );

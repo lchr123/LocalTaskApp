@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform, Image, TouchableOpacity } from 'react-native';
 import {
   Card,
   Text,
@@ -39,6 +39,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { appDialog } from '../../stores/dialogStore';
 import { formatReward, formatRelativeTime, formatRating } from '../../utils/formatters';
 import { TASK_TYPE_LABELS, VALIDATION } from '../../utils/constants';
+import ImageViewerModal from '../../components/common/ImageViewerModal';
 
 type Props = NativeStackScreenProps<TaskStackParamList, 'TaskDetail'>;
 
@@ -68,6 +69,8 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   // Set up header right menu button
   useEffect(() => {
@@ -289,6 +292,40 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
           </Card.Content>
         </Card>
 
+        {/* Task Images */}
+        {currentTask.images && currentTask.images.length > 0 && (
+          <Card style={styles.card} accessibilityLabel="任务图片">
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                任务图片
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.imageRow}
+              >
+                {currentTask.images.map((url, idx) => (
+                  <TouchableOpacity
+                    key={`${url}-${idx}`}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setViewerIndex(idx);
+                      setViewerVisible(true);
+                    }}
+                    accessibilityLabel={`任务图片 ${idx + 1}，点击放大`}
+                    accessibilityRole="button"
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={styles.taskImage}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </Card.Content>
+          </Card>
+        )}
+
         {/* Location (Requirement 5.3) */}
         <Card style={styles.card} accessibilityLabel="任务地点">
           <Card.Content>
@@ -314,6 +351,11 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
             </Text>
             <Text variant="headlineSmall" style={styles.rewardText}>
               {formatReward(currentTask.reward)}
+              {currentTask.rewardUnit ? (
+                <Text variant="bodyMedium" style={styles.rewardUnitText}>
+                  {`  / ${REWARD_UNIT_LABEL[currentTask.rewardUnit] || currentTask.rewardUnit}`}
+                </Text>
+              ) : null}
             </Text>
           </Card.Content>
         </Card>
@@ -340,9 +382,57 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
                 截止时间：
               </Text>
               <Text variant="bodyMedium">
-                {new Date(currentTask.deadline).toLocaleString('zh-CN')}
+                {new Date(currentTask.deadline).toLocaleString('ja-JP', { hour12: false })}
               </Text>
             </View>
+            {currentTask.startTime && (
+              <View style={styles.infoRow}>
+                <Text variant="bodyMedium" style={styles.infoLabel}>
+                  预计开始：
+                </Text>
+                <Text variant="bodyMedium">
+                  {new Date(currentTask.startTime).toLocaleString('ja-JP', { hour12: false })}
+                </Text>
+              </View>
+            )}
+            {currentTask.durationHours != null && (
+              <View style={styles.infoRow}>
+                <Text variant="bodyMedium" style={styles.infoLabel}>
+                  预计时长：
+                </Text>
+                <Text variant="bodyMedium">
+                  {currentTask.durationHours} 小时
+                  {currentTask.durationUnit
+                    ? ` / ${DURATION_UNIT_LABEL[currentTask.durationUnit] || currentTask.durationUnit}`
+                    : ''}
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+
+        {/* Recruitment & Contact */}
+        <Card style={styles.card} accessibilityLabel="招募与联系信息">
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              招募与联系
+            </Text>
+            <View style={styles.infoRow}>
+              <Text variant="bodyMedium" style={styles.infoLabel}>
+                招募人数：
+              </Text>
+              <Text variant="bodyMedium">{currentTask.headcount ?? 1} 人</Text>
+            </View>
+            {currentTask.contactMethod ? (
+              <View style={styles.infoRow}>
+                <Text variant="bodyMedium" style={styles.infoLabel}>
+                  联系方式：
+                </Text>
+                <Text variant="bodyMedium" style={styles.contactText}>
+                  {currentTask.contactMethod}
+                </Text>
+              </View>
+            ) : null}
           </Card.Content>
         </Card>
 
@@ -534,6 +624,14 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
       >
         {snackbarMessage}
       </Snackbar>
+
+      {/* Full-screen image viewer */}
+      <ImageViewerModal
+        visible={viewerVisible}
+        images={currentTask.images || []}
+        initialIndex={viewerIndex}
+        onClose={() => setViewerVisible(false)}
+      />
     </View>
   );
 }
@@ -554,6 +652,9 @@ function getStatusLabel(status: string): string {
       return status;
   }
 }
+
+const REWARD_UNIT_LABEL: Record<string, string> = { once: '次', hour: '小时', day: '日', month: '月' };
+const DURATION_UNIT_LABEL: Record<string, string> = { once: '次', day: '日', week: '周', month: '月' };
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -626,6 +727,24 @@ const styles = StyleSheet.create({
   rewardText: {
     color: '#e65100',
     fontWeight: '700',
+  },
+  rewardUnitText: {
+    color: '#999',
+    fontWeight: '400',
+  },
+  imageRow: {
+    gap: 8,
+    paddingVertical: 4,
+  },
+  taskImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    backgroundColor: '#eee',
+  },
+  contactText: {
+    flex: 1,
+    flexWrap: 'wrap',
   },
   infoRow: {
     flexDirection: 'row',

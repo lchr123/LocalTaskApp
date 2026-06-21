@@ -19,6 +19,7 @@ import { Task, Intent, TaskFilter, CreateTaskPayload } from '../types/task';
 import { taskService } from '../services/taskService';
 import { locationService, UserLocation } from '../services/locationService';
 import { LOCATION, PAGINATION } from '../utils/constants';
+import { JpPrefecture } from '../utils/jpCities';
 
 /**
  * Task store state interface
@@ -46,6 +47,8 @@ interface TaskState {
   userLocation: UserLocation | null;
   /** Whether location permission was denied */
   locationDenied: boolean;
+  /** Manually selected prefecture (when GPS is unavailable / overridden) */
+  manualCity: JpPrefecture | null;
 
   // Actions
 
@@ -71,6 +74,8 @@ interface TaskState {
   refresh: () => Promise<void>;
   /** Initialize user location */
   initLocation: () => Promise<void>;
+  /** Manually set location from a selected prefecture (overrides GPS) */
+  setManualLocation: (city: JpPrefecture) => void;
   /** Clear current task detail */
   clearCurrentTask: () => void;
   /** Clear error state */
@@ -98,6 +103,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   hasMore: true,
   userLocation: null,
   locationDenied: false,
+  manualCity: null,
 
   /**
    * Initialize user location.
@@ -109,10 +115,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const location = await locationService.getCurrentLocation();
 
     if (location) {
-      set({ userLocation: location, locationDenied: false });
+      set({ userLocation: location, locationDenied: false, manualCity: null });
     } else {
       set({ userLocation: null, locationDenied: true });
     }
+  },
+
+  /**
+   * Manually set location from a selected prefecture.
+   * Used when GPS is unavailable/denied, or when the user wants to browse
+   * tasks in a different region. Clears the locationDenied flag so the list
+   * renders, and stores the chosen prefecture for display.
+   *
+   * The userLocation change triggers fetchTasks via the screen's effect.
+   */
+  setManualLocation: (city: JpPrefecture) => {
+    set({
+      userLocation: { latitude: city.latitude, longitude: city.longitude, accuracy: null },
+      locationDenied: false,
+      manualCity: city,
+    });
   },
 
   /**
