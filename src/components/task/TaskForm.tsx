@@ -30,6 +30,7 @@ import { TASK_TYPE_LABELS } from '../../utils/constants';
 import { TaskType } from '../../types/task';
 import LocationPicker, { LocationValue } from './LocationPicker';
 import TaskImageUploader from './TaskImageUploader';
+import TaskTagSelector from './TaskTagSelector';
 
 // Conditionally import DateTimePicker (not available on web)
 let DateTimePicker: any = null;
@@ -49,14 +50,9 @@ interface TaskFormProps {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string }[] = [
-  { value: 'delivery', label: TASK_TYPE_LABELS.delivery },
-  { value: 'pet_care', label: TASK_TYPE_LABELS.pet_care },
-  { value: 'translation', label: TASK_TYPE_LABELS.translation },
-  { value: 'moving', label: TASK_TYPE_LABELS.moving },
-  { value: 'airport_transfer', label: TASK_TYPE_LABELS.airport_transfer },
-  { value: 'childcare', label: TASK_TYPE_LABELS.childcare },
-  { value: 'house_rent', label: TASK_TYPE_LABELS.house_rent },
-  { value: 'other', label: TASK_TYPE_LABELS.other },
+  { value: 'full_time', label: TASK_TYPE_LABELS.full_time },
+  { value: 'part_time', label: TASK_TYPE_LABELS.part_time },
+  { value: 'one_time', label: TASK_TYPE_LABELS.one_time },
 ];
 
 const REWARD_UNIT_OPTIONS: { value: 'once' | 'hour' | 'day' | 'month'; label: string }[] = [
@@ -91,6 +87,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
     formState: { errors },
     setValue,
     watch,
+    reset,
   } = useForm<CreateTaskFormData>({
     resolver: zodResolver(createTaskFormSchema),
     defaultValues: {
@@ -110,6 +107,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
       durationHours: undefined,
       durationUnit: undefined,
       contactMethod: '',
+      tagIds: [],
     },
     mode: 'onBlur',
   });
@@ -176,9 +174,19 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
    */
   const onFormSubmit = useCallback(
     async (data: CreateTaskFormData) => {
-      await onSubmit(data);
+      try {
+        await onSubmit(data);
+      } catch {
+        // Submission failed — keep the form data so the user can retry.
+        return;
+      }
+      // Reset the form to its initial state after a successful submission.
+      // The publish screen lives in a tab navigator and stays mounted, so
+      // without this the old values would persist when returning to the tab.
+      reset();
+      setMoreVisible(false);
     },
-    [onSubmit]
+    [onSubmit, reset]
   );
 
   return (
@@ -517,6 +525,21 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
           )}
         />
       </View>
+
+      {/* Task Tags */}
+      <Controller
+        control={control}
+        name="tagIds"
+        render={({ field: { onChange, value } }) => (
+          <View style={styles.fieldContainer}>
+            <TaskTagSelector
+              value={(value as string[]) || []}
+              onChange={onChange}
+              disabled={isLoading}
+            />
+          </View>
+        )}
+      />
 
       {/* More Options (collapsible) */}
       <Button

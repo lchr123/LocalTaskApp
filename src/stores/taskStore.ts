@@ -67,7 +67,7 @@ interface TaskState {
   /** Select a helper for a task */
   selectHelper: (taskId: string, helperId: string) => Promise<void>;
   /** Update filter settings */
-  setFilter: (filter: Partial<TaskFilter>) => void;
+  setFilter: (filter: Partial<TaskFilter>, refetch?: boolean) => void;
   /** Load the next page of tasks */
   loadMore: () => Promise<void>;
   /** Refresh the task list (pull-to-refresh) */
@@ -162,6 +162,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         minReward: filter.minReward,
         maxReward: filter.maxReward,
         sort: filter.sort,
+        tags: filter.tags,
         page: 1,
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
@@ -203,6 +204,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         minReward: filter.minReward,
         maxReward: filter.maxReward,
         sort: filter.sort,
+        tags: filter.tags,
         page: nextPage,
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
@@ -254,6 +256,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         minReward: filter.minReward,
         maxReward: filter.maxReward,
         sort: filter.sort,
+        tags: filter.tags,
         page: 1,
         pageSize: PAGINATION.DEFAULT_PAGE_SIZE,
       });
@@ -443,12 +446,15 @@ export const useTaskStore = create<TaskState>((set, get) => ({
    *
    * Requirement 5.5: Filter by task type and reward range.
    */
-  setFilter: (newFilter: Partial<TaskFilter>) => {
+  setFilter: (newFilter: Partial<TaskFilter>, refetch = true) => {
     set((state) => ({
       filter: { ...state.filter, ...newFilter },
     }));
-    // Re-fetch tasks with updated filter
-    get().fetchTasks();
+    // Re-fetch tasks with updated filter (skipped while a multi-select menu is
+    // still open; the caller fetches once when the menu closes).
+    if (refetch) {
+      get().fetchTasks();
+    }
   },
 
   /**

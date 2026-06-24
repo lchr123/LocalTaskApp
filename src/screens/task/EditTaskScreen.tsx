@@ -21,6 +21,7 @@ import { taskService } from '../../services/taskService';
 import { Task } from '../../types/task';
 import LocationPicker, { LocationValue } from '../../components/task/LocationPicker';
 import TaskImageUploader from '../../components/task/TaskImageUploader';
+import TaskTagSelector from '../../components/task/TaskTagSelector';
 import { VALIDATION } from '../../utils/constants';
 
 const REWARD_UNIT_OPTIONS: { value: 'once' | 'hour' | 'day' | 'month'; label: string }[] = [
@@ -86,6 +87,8 @@ export default function EditTaskScreen({ route, navigation }: Props) {
   const [durationHours, setDurationHours] = useState('');
   const [durationUnit, setDurationUnit] = useState<'once' | 'day' | 'week' | 'month' | ''>('');
   const [contactMethod, setContactMethod] = useState('');
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [initialTagIds, setInitialTagIds] = useState<string[]>([]);
   const [moreVisible, setMoreVisible] = useState(false);
   const [rewardUnitMenu, setRewardUnitMenu] = useState(false);
   const [durationUnitMenu, setDurationUnitMenu] = useState(false);
@@ -115,6 +118,9 @@ export default function EditTaskScreen({ route, navigation }: Props) {
         setDurationHours(taskData.durationHours != null ? String(taskData.durationHours) : '');
         setDurationUnit((taskData.durationUnit as any) || '');
         setContactMethod(taskData.contactMethod || '');
+        const initTags = (taskData.tags || []).map((t) => t.id);
+        setTagIds(initTags);
+        setInitialTagIds(initTags);
       } catch {
         setLoadError('无法加载任务信息');
       } finally {
@@ -185,6 +191,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
         rewardUnit?: string | null; images?: string[]; headcount?: number;
         startTime?: string | null; contactMethod?: string | null;
         durationHours?: number | null; durationUnit?: string | null;
+        tagIds?: string[];
       } = {};
 
       if (description !== task.description) {
@@ -232,6 +239,11 @@ export default function EditTaskScreen({ route, navigation }: Props) {
       if (normalizedContact !== (task.contactMethod ?? null)) {
         payload.contactMethod = normalizedContact;
       }
+      const sortedTags = [...tagIds].sort();
+      const sortedInitialTags = [...initialTagIds].sort();
+      if (JSON.stringify(sortedTags) !== JSON.stringify(sortedInitialTags)) {
+        payload.tagIds = tagIds;
+      }
 
       if (Object.keys(payload).length === 0) {
         setErrorMessage('没有需要保存的修改');
@@ -251,7 +263,7 @@ export default function EditTaskScreen({ route, navigation }: Props) {
     } finally {
       setIsSubmitting(false);
     }
-  }, [canSubmit, description, rewardNum, rewardUnit, location, deadline, initialDeadline, images, headcount, startTime, durationHours, durationUnit, contactMethod, task, navigation]);
+  }, [canSubmit, description, rewardNum, rewardUnit, location, deadline, initialDeadline, images, headcount, startTime, durationHours, durationUnit, contactMethod, tagIds, initialTagIds, task, navigation]);
 
   // Loading state
   if (isLoadingTask) {
@@ -406,6 +418,11 @@ export default function EditTaskScreen({ route, navigation }: Props) {
             onChange={setLocation}
             disabled={isSubmitting}
           />
+        </View>
+
+        {/* Task Tags */}
+        <View style={styles.fieldContainer}>
+          <TaskTagSelector value={tagIds} onChange={setTagIds} disabled={isSubmitting} />
         </View>
 
         {/* Deadline */}

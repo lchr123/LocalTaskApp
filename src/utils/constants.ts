@@ -5,14 +5,9 @@ import { ReportType } from '../types/report';
  * Task type labels (Chinese)
  */
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  delivery: '跑腿代办',
-  pet_care: '宠物照护',
-  translation: '翻译陪同',
-  moving: '搬家协助',
-  airport_transfer: '出租车接送',
-  childcare: '育儿协助',
-  house_rent: '房屋短租',
-  other: '其他',
+  full_time: '全职',
+  part_time: '兼职',
+  one_time: '单次任务',
 };
 
 /**
@@ -45,6 +40,7 @@ export const API_ENDPOINTS = {
   TASK_SELECT_HELPER: (id: string) => `/tasks/${id}/select-helper`,
   TASK_START_CHAT: (id: string) => `/tasks/${id}/chat`,
   TASK_MEMO: (id: string) => `/tasks/${id}/memo`,
+  TASK_TAGS: '/tasks/tags',
 
   // Chat
   CHAT_SESSIONS: '/chat/sessions',

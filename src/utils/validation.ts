@@ -144,7 +144,7 @@ export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
 // ─── Task Form Schema ────────────────────────────────────────────────────────
 
-const taskTypes = ['delivery', 'pet_care', 'translation', 'moving', 'airport_transfer', 'childcare', 'house_rent', 'other'] as const;
+const taskTypes = ['full_time', 'part_time', 'one_time'] as const;
 
 /**
  * Location object schema with address and coordinates.
@@ -196,6 +196,7 @@ export const createTaskFormSchema = z.object({
   contactMethod: z.string().max(100, '联系方式不能超过100字符').nullish(),
   durationHours: z.number().positive('时长需大于0').max(999.9).nullish(),
   durationUnit: z.enum(['once', 'day', 'week', 'month']).nullish(),
+  tagIds: z.array(z.string()).optional(),
 });
 
 export type CreateTaskFormData = z.infer<typeof createTaskFormSchema>;

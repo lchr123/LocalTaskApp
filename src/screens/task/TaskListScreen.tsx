@@ -47,6 +47,11 @@ export default function TaskListScreen() {
   const navigation = useNavigation<TaskListNavigationProp>();
   const isInitializedRef = useRef(false);
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
+  // Whether the very first task load has completed. After that, filter-driven
+  // refetches must NOT replace the whole screen with a fullscreen loader (which
+  // would unmount the FilterBar and close any open filter dropdown).
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const prevLoadingRef = useRef(false);
 
   const {
     tasks,
@@ -99,6 +104,17 @@ export default function TaskListScreen() {
       fetchTasks();
     }
   }, [filter]);
+
+  /**
+   * Mark the first load as complete once loading transitions from true → false.
+   * Used to ensure the fullscreen loader only shows on the very first load.
+   */
+  useEffect(() => {
+    if (prevLoadingRef.current && !isLoading) {
+      setHasLoaded(true);
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   /**
    * Handle pull-to-refresh.
@@ -253,7 +269,7 @@ export default function TaskListScreen() {
   /**
    * Show initial loading state.
    */
-  if (isLoading && tasks.length === 0 && !error) {
+  if (isLoading && tasks.length === 0 && !error && !hasLoaded) {
     return (
       <View style={styles.container} accessibilityLabel="任务列表加载中">
         <LoadingIndicator

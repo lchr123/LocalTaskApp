@@ -165,7 +165,7 @@ export default function MyTasksScreen() {
           <Card.Content>
             <View style={styles.headerRow}>
               <Chip mode="outlined" compact>
-                {TASK_TYPE_LABELS[item.type]}
+                {TASK_TYPE_LABELS[item.type] || item.type}
               </Chip>
               <Chip
                 compact

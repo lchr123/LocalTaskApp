@@ -76,6 +76,26 @@ export const TaskCard: React.FC<TaskCardProps> = memo(({ task, onPress }) => {
             {descriptionSummary}
           </Text>
 
+          {/* Tags */}
+          {task.tags && task.tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {task.tags.slice(0, 3).map((tag) => (
+                <Chip
+                  key={tag.id}
+                  style={styles.tagChip}
+                  textStyle={styles.tagChipText}
+                  compact
+                  accessibilityLabel={`标签: ${tag.label_zh}`}
+                >
+                  {tag.label_zh}
+                </Chip>
+              ))}
+              {task.tags.length > 3 && (
+                <Text style={styles.tagMore}>+{task.tags.length - 3}</Text>
+              )}
+            </View>
+          )}
+
           {/* Footer: Location + Time + Distance */}
           <View style={styles.footer}>
             <View style={styles.locationRow}>
@@ -147,6 +167,26 @@ const styles = StyleSheet.create({
     color: '#424242',
     lineHeight: 20,
     marginBottom: 10,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  tagChip: {
+    backgroundColor: '#F1F8E9',
+    height: 24,
+  },
+  tagChipText: {
+    fontSize: 11,
+    color: '#558B2F',
+    marginVertical: 0,
+  },
+  tagMore: {
+    fontSize: 11,
+    color: '#9E9E9E',
   },
   footer: {
     flexDirection: 'row',

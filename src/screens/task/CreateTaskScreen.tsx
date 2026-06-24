@@ -75,6 +75,7 @@ export default function CreateTaskScreen() {
           contactMethod: data.contactMethod || null,
           durationHours: data.durationHours ?? null,
           durationUnit: data.durationUnit ?? null,
+          tagIds: data.tagIds ?? [],
         });
 
         // Show success feedback
@@ -92,6 +93,9 @@ export default function CreateTaskScreen() {
         const message =
           error instanceof Error ? error.message : '发布任务失败，请稍后重试';
         setErrorMessage(message);
+        // Re-throw so TaskForm knows the submission failed and keeps the
+        // form data (instead of resetting it).
+        throw error;
       }
     },
     [createTask, navigation]

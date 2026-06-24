@@ -48,6 +48,7 @@ export interface FetchTasksParams {
   sort?: string;
   page?: number;
   pageSize?: number;
+  tags?: string;
 }
 
 class TaskService {
@@ -89,6 +90,9 @@ class TaskService {
     if (params.sort) {
       queryParams.sort = params.sort;
     }
+    if (params.tags) {
+      queryParams.tags = params.tags;
+    }
 
     const response = await apiClient.get<TaskListResponse>(
       API_ENDPOINTS.TASKS,
@@ -96,6 +100,16 @@ class TaskService {
     );
 
     return response.data;
+  }
+
+  /**
+   * Fetch the task tag dictionary.
+   */
+  async fetchTaskTags(): Promise<import('../types/task').TaskTag[]> {
+    const response = await apiClient.get<{ tags: import('../types/task').TaskTag[] }>(
+      API_ENDPOINTS.TASK_TAGS
+    );
+    return response.data.tags;
   }
 
   /**
@@ -210,6 +224,7 @@ class TaskService {
       contactMethod?: string | null;
       durationHours?: number | null;
       durationUnit?: string | null;
+      tagIds?: string[];
     }
   ): Promise<Task> {
     const response = await apiClient.patch<Task>(

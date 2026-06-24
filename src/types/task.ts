@@ -1,7 +1,14 @@
-export type TaskType = 'delivery' | 'pet_care' | 'translation' | 'moving' | 'airport_transfer' | 'childcare' | 'house_rent' | 'other';
+export type TaskType = 'full_time' | 'part_time' | 'one_time';
 export type TaskStatus = 'open' | 'in_progress' | 'completed' | 'cancelled';
 export type RewardUnit = 'once' | 'hour' | 'day' | 'month';
 export type DurationUnit = 'once' | 'day' | 'week' | 'month';
+
+export interface TaskTag {
+  id: string;
+  name: string;
+  label_zh: string;
+  category: string | null;
+}
 
 export interface Task {
   id: string;
@@ -32,6 +39,7 @@ export interface Task {
   durationHours?: number | null;
   durationUnit?: DurationUnit | null;
   posterMemo?: string | null;
+  tags?: TaskTag[];
 }
 
 export interface Intent {
@@ -63,6 +71,7 @@ export interface CreateTaskPayload {
   contactMethod?: string | null;
   durationHours?: number | null;
   durationUnit?: DurationUnit | null;
+  tagIds?: string[];
 }
 
 export interface TaskFilter {
@@ -71,4 +80,5 @@ export interface TaskFilter {
   maxReward?: number;
   radius?: number;
   sort?: 'distance' | 'reward' | 'newest' | 'deadline';
+  tags?: string;  // comma-separated tag ids
 }

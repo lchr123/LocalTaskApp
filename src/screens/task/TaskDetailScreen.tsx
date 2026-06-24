@@ -229,9 +229,9 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
         <View style={styles.headerRow} accessibilityLabel="任务类型和状态">
           <Chip
             mode="outlined"
-            accessibilityLabel={`任务类型：${TASK_TYPE_LABELS[currentTask.type]}`}
+            accessibilityLabel={`任务类型：${TASK_TYPE_LABELS[currentTask.type] || currentTask.type}`}
           >
-            {TASK_TYPE_LABELS[currentTask.type]}
+            {TASK_TYPE_LABELS[currentTask.type] || currentTask.type}
           </Chip>
           <View style={styles.headerRightRow}>
             <Chip
@@ -291,6 +291,29 @@ export default function TaskDetailScreen({ route, navigation }: Props) {
             </Text>
           </Card.Content>
         </Card>
+
+        {/* Tags */}
+        {currentTask.tags && currentTask.tags.length > 0 && (
+          <Card style={styles.card} accessibilityLabel="任务标签">
+            <Card.Content>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                任务标签
+              </Text>
+              <View style={styles.tagsWrap}>
+                {currentTask.tags.map((tag) => (
+                  <Chip
+                    key={tag.id}
+                    style={styles.detailTagChip}
+                    compact
+                    accessibilityLabel={`标签：${tag.label_zh}`}
+                  >
+                    {tag.label_zh}
+                  </Chip>
+                ))}
+              </View>
+            </Card.Content>
+          </Card>
+        )}
 
         {/* Task Images */}
         {currentTask.images && currentTask.images.length > 0 && (
@@ -735,6 +758,14 @@ const styles = StyleSheet.create({
   imageRow: {
     gap: 8,
     paddingVertical: 4,
+  },
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  detailTagChip: {
+    backgroundColor: '#F1F8E9',
   },
   taskImage: {
     width: 120,
