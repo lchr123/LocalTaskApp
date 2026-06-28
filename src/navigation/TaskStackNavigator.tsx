@@ -20,6 +20,7 @@ import CreateReviewScreen from '../screens/review/CreateReviewScreen';
 import CreateReportScreen from '../screens/report/CreateReportScreen';
 import EditTaskScreen from '../screens/task/EditTaskScreen';
 import UserReceivedReviewsScreen from '../screens/review/UserReceivedReviewsScreen';
+import { withSafeAreaTop } from '../components/common';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -47,6 +48,10 @@ export type TaskStackParamList = {
 
 const Stack = createNativeStackNavigator<TaskStackParamList>();
 
+// Root screen hides the native header (headerShown: false), so wrap it to
+// keep its custom top bar below the Android status bar.
+const MyTasksTabWithSafeArea = withSafeAreaTop(MyTasksTabScreen);
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function TaskStackNavigator() {
@@ -61,7 +66,7 @@ export default function TaskStackNavigator() {
     >
       <Stack.Screen
         name="MyTasksTab"
-        component={MyTasksTabScreen}
+        component={MyTasksTabWithSafeArea}
         options={{ title: '我的任务', headerShown: false }}
       />
       <Stack.Screen

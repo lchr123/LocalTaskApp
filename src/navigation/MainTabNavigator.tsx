@@ -28,6 +28,7 @@ import ChatStackNavigator from './ChatStackNavigator';
 import ProfileStackNavigator from './ProfileStackNavigator';
 import { useAuthStore } from '../stores/authStore';
 import { useBadgeStore } from '../stores/badgeStore';
+import { withSafeAreaTop } from '../components/common';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -42,6 +43,10 @@ export type MainTabParamList = {
 // ─── Tab Navigator ───────────────────────────────────────────────────────────
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// The Post tab has no stack header (headerShown is false at the tab level),
+// so wrap it to keep its content below the Android status bar.
+const PostScreen = withSafeAreaTop(CreateTaskScreen);
 
 // ─── Tab Icon Mapping ────────────────────────────────────────────────────────
 
@@ -119,7 +124,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="Post"
-        component={CreateTaskScreen}
+        component={PostScreen}
         options={{
           tabBarLabel: '发布',
           tabBarAccessibilityLabel: '发布任务',

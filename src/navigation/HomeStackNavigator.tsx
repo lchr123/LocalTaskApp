@@ -12,6 +12,7 @@ import TaskDetailScreen from '../screens/task/TaskDetailScreen';
 import IntentListScreen from '../screens/task/IntentListScreen';
 import CreateReportScreen from '../screens/report/CreateReportScreen';
 import HelpScreen from '../screens/profile/HelpScreen';
+import { withSafeAreaTop } from '../components/common';
 
 export type HomeStackParamList = {
   TaskList: undefined;
@@ -27,6 +28,10 @@ export type HomeStackParamList = {
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
 
+// Root screen hides the native header (headerShown: false), so wrap it to
+// keep its custom top bar below the Android status bar.
+const TaskListWithSafeArea = withSafeAreaTop(TaskListScreen);
+
 export default function HomeStackNavigator() {
   return (
     <Stack.Navigator
@@ -39,7 +44,7 @@ export default function HomeStackNavigator() {
     >
       <Stack.Screen
         name="TaskList"
-        component={TaskListScreen}
+        component={TaskListWithSafeArea}
         options={{ title: '任务大厅', headerShown: false }}
       />
       <Stack.Screen

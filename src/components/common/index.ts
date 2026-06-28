@@ -10,3 +10,6 @@ export type { EmptyStateProps } from './EmptyState';
 export { ErrorBoundary } from './ErrorBoundary';
 
 export { NetworkStatusBar } from './NetworkStatusBar';
+
+export { SafeAreaTop, withSafeAreaTop } from './SafeAreaTop';
+export type { SafeAreaTopProps } from './SafeAreaTop';

@@ -12,6 +12,7 @@ import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import ReviewListScreen from '../screens/review/ReviewListScreen';
 import MyReportsScreen from '../screens/report/MyReportsScreen';
 import HelpScreen from '../screens/profile/HelpScreen';
+import { withSafeAreaTop } from '../components/common';
 
 export type ProfileStackParamList = {
   ProfileMain: undefined;
@@ -22,6 +23,10 @@ export type ProfileStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
+
+// Root screen hides the native header (headerShown: false), so wrap it to
+// keep its content below the Android status bar.
+const ProfileWithSafeArea = withSafeAreaTop(ProfileScreen);
 
 export default function ProfileStackNavigator() {
   return (
@@ -35,7 +40,7 @@ export default function ProfileStackNavigator() {
     >
       <Stack.Screen
         name="ProfileMain"
-        component={ProfileScreen}
+        component={ProfileWithSafeArea}
         options={{ title: '个人中心', headerShown: false }}
       />
       <Stack.Screen

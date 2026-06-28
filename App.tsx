@@ -22,6 +22,7 @@
 
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 
 import { useAppInitialization } from './src/hooks/useAppInitialization';
@@ -64,13 +65,15 @@ export default function App() {
   useAppInitialization();
 
   return (
-    <PaperProvider theme={theme}>
-      <ErrorBoundary>
-        <RootNavigator />
-        <AppDialog />
-        <NetworkStatusBar />
-        <StatusBar style="auto" />
-      </ErrorBoundary>
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <ErrorBoundary>
+          <RootNavigator />
+          <AppDialog />
+          <NetworkStatusBar />
+          <StatusBar style="auto" />
+        </ErrorBoundary>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

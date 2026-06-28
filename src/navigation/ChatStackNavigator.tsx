@@ -15,6 +15,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ChatListScreen from '../screens/chat/ChatListScreen';
 import ChatRoomScreen from '../screens/chat/ChatRoomScreen';
+import { withSafeAreaTop } from '../components/common';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -26,6 +27,10 @@ export type ChatStackParamList = {
 // ─── Stack Navigator ─────────────────────────────────────────────────────────
 
 const Stack = createNativeStackNavigator<ChatStackParamList>();
+
+// Root screen hides the native header (headerShown: false), so wrap it to
+// keep its custom top bar below the Android status bar.
+const ChatListWithSafeArea = withSafeAreaTop(ChatListScreen);
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -41,7 +46,7 @@ export default function ChatStackNavigator() {
     >
       <Stack.Screen
         name="ChatList"
-        component={ChatListScreen}
+        component={ChatListWithSafeArea}
         options={{ title: '消息', headerShown: false }}
       />
       <Stack.Screen
