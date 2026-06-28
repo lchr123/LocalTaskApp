@@ -60,10 +60,12 @@ export default function TaskListScreen() {
     hasMore,
     userLocation,
     locationDenied,
+    locationBlocked,
     manualCity,
     filter,
     initLocation,
     setManualLocation,
+    openLocationSettings,
     fetchTasks,
     loadMore,
     refresh,
@@ -152,6 +154,15 @@ export default function TaskListScreen() {
   }, [initLocation]);
 
   /**
+   * Open the system settings so the user can grant location permission.
+   * Used when the permission is permanently denied (canAskAgain === false),
+   * because re-requesting in-app no longer surfaces the OS dialog.
+   */
+  const handleOpenSettings = useCallback(async () => {
+    await openLocationSettings();
+  }, [openLocationSettings]);
+
+  /**
    * Handle manual city selection from the picker.
    */
   const handleSelectCity = useCallback(
@@ -228,17 +239,35 @@ export default function TaskListScreen() {
           </>
         ) : (
           <>
-            <Text style={styles.permissionDescription}>
-              请开启定位权限以查看附近的任务
-            </Text>
-            <Button
-              mode="contained"
-              onPress={handleRetryLocation}
-              style={styles.permissionButton}
-              accessibilityLabel="重新获取定位权限"
-            >
-              重新获取权限
-            </Button>
+            {locationBlocked ? (
+              <>
+                <Text style={styles.permissionDescription}>
+                  定位权限已被拒绝，系统已不再弹出授权请求。请前往系统设置手动开启定位权限后返回重试。
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleOpenSettings}
+                  style={styles.permissionButton}
+                  accessibilityLabel="前往系统设置开启定位权限"
+                >
+                  去系统设置开启
+                </Button>
+              </>
+            ) : (
+              <>
+                <Text style={styles.permissionDescription}>
+                  请开启定位权限以查看附近的任务
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleRetryLocation}
+                  style={styles.permissionButton}
+                  accessibilityLabel="重新获取定位权限"
+                >
+                  重新获取权限
+                </Button>
+              </>
+            )}
           </>
         )}
 

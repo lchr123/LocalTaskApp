@@ -22,6 +22,18 @@ export interface UserLocation {
 }
 
 /**
+ * Detailed foreground location permission state.
+ * `canAskAgain` is false once the user has permanently denied the permission
+ * (Android "don't ask again" / iOS after first denial). In that state the OS
+ * will no longer surface the system permission dialog, and the only path to
+ * re-grant is the system Settings screen.
+ */
+export interface LocationPermissionStatus {
+  granted: boolean;
+  canAskAgain: boolean;
+}
+
+/**
  * Earth's radius in kilometers (used for Haversine formula)
  */
 const EARTH_RADIUS_KM = 6371;
@@ -58,6 +70,44 @@ class LocationService {
       return status === 'granted';
     } catch {
       return false;
+    }
+  }
+
+  /**
+   * Read the current foreground permission state WITHOUT prompting.
+   * Used to distinguish "denied but can still ask" from "permanently denied",
+   * so the UI can decide between re-requesting and deep-linking to Settings.
+   */
+  async getPermissionStatus(): Promise<LocationPermissionStatus> {
+    try {
+      const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
+      return { granted: status === 'granted', canAskAgain };
+    } catch {
+      // On failure, assume we can still ask (don't trap the user in a Settings-only state).
+      return { granted: false, canAskAgain: true };
+    }
+  }
+
+  /**
+   * Open the OS settings screen for this app so the user can manually enable
+   * location permission. This is the only recovery path once the permission is
+   * permanently denied (canAskAgain === false), because the system will no
+   * longer show the in-app permission dialog.
+   *
+   * No-op on web, where there is no per-app OS settings screen (the browser
+   * manages site location permission).
+   */
+  async openSettings(): Promise<void> {
+    // Lazily import react-native so this module can be unit-tested without the
+    // react-native runtime (which jest's node environment cannot load directly).
+    try {
+      const { Linking, Platform } = await import('react-native');
+      if (Platform.OS === 'web') {
+        return;
+      }
+      await Linking.openSettings();
+    } catch {
+      // Ignore — nothing else we can do if the settings deep link fails.
     }
   }
 

@@ -47,6 +47,12 @@ interface TaskState {
   userLocation: UserLocation | null;
   /** Whether location permission was denied */
   locationDenied: boolean;
+  /**
+   * Whether location permission is permanently denied (canAskAgain === false).
+   * In this state the OS will not show the permission dialog again, so the UI
+   * must direct the user to the system Settings instead of re-requesting.
+   */
+  locationBlocked: boolean;
   /** Manually selected prefecture (when GPS is unavailable / overridden) */
   manualCity: JpPrefecture | null;
 
@@ -74,6 +80,8 @@ interface TaskState {
   refresh: () => Promise<void>;
   /** Initialize user location */
   initLocation: () => Promise<void>;
+  /** Open the OS settings screen so the user can grant location permission */
+  openLocationSettings: () => Promise<void>;
   /** Manually set location from a selected prefecture (overrides GPS) */
   setManualLocation: (city: JpPrefecture) => void;
   /** Clear current task detail */
@@ -103,6 +111,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   hasMore: true,
   userLocation: null,
   locationDenied: false,
+  locationBlocked: false,
   manualCity: null,
 
   /**
@@ -115,10 +124,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const location = await locationService.getCurrentLocation();
 
     if (location) {
-      set({ userLocation: location, locationDenied: false, manualCity: null });
-    } else {
-      set({ userLocation: null, locationDenied: true });
+      set({
+        userLocation: location,
+        locationDenied: false,
+        locationBlocked: false,
+        manualCity: null,
+      });
+      return;
     }
+
+    // No location: either permission was denied or the position was unavailable.
+    // Check whether the permission is permanently denied so the UI can route the
+    // user to system Settings instead of uselessly re-requesting (which the OS
+    // will silently auto-deny once canAskAgain is false).
+    let blocked = false;
+    try {
+      const status = await locationService.getPermissionStatus();
+      blocked = !status.granted && !status.canAskAgain;
+    } catch {
+      blocked = false;
+    }
+
+    set({ userLocation: null, locationDenied: true, locationBlocked: blocked });
+  },
+
+  /**
+   * Open the OS settings screen for this app so the user can manually enable
+   * location permission. Used when permission is permanently denied and the
+   * in-app permission dialog can no longer be triggered.
+   */
+  openLocationSettings: async () => {
+    await locationService.openSettings();
   },
 
   /**
