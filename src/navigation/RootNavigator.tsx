@@ -19,6 +19,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuthStore } from '../stores/authStore';
 import { navigationRef, RootStackParamList } from './navigationRef';
+import { linking } from './linking';
 import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
 
@@ -49,7 +50,15 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      linking={linking}
+      fallback={
+        <View style={styles.loadingContainer} accessibilityLabel="加载中">
+          <ActivityIndicator size="large" />
+        </View>
+      }
+    >
       <Stack.Navigator
         initialRouteName="Main"
         screenOptions={{ headerShown: false }}
