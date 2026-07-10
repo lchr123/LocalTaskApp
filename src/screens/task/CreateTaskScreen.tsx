@@ -25,18 +25,22 @@ import {
   Alert,
 } from 'react-native';
 import { Text, Snackbar, useTheme } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useTaskStore } from '../../stores/taskStore';
 import TaskForm from '../../components/task/TaskForm';
 import { CreateTaskFormData } from '../../utils/validation';
 import { useAuthStore } from '../../stores/authStore';
 import AuthRequired from '../../components/auth/AuthRequired';
+import { PostStackParamList } from '../../navigation/PostStackNavigator';
+
+type CreateTaskRouteProp = RouteProp<PostStackParamList, 'CreateTask'>;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function CreateTaskScreen() {
   const theme = useTheme();
   const navigation = useNavigation();
+  const { kind } = useRoute<CreateTaskRouteProp>().params;
   const { createTask, isLoading, refresh } = useTaskStore();
 
   const [successVisible, setSuccessVisible] = useState(false);
@@ -59,6 +63,7 @@ export default function CreateTaskScreen() {
 
       try {
         await createTask({
+          kind,
           type: data.type,
           description: data.description,
           location: {
@@ -91,7 +96,11 @@ export default function CreateTaskScreen() {
         }, 1500);
       } catch (error: unknown) {
         const message =
-          error instanceof Error ? error.message : '发布任务失败，请稍后重试';
+          error instanceof Error
+            ? error.message
+            : kind === 'marketplace'
+              ? '发布闲置失败，请稍后重试'
+              : '发布任务失败，请稍后重试';
         setErrorMessage(message);
         // Re-throw so TaskForm knows the submission failed and keeps the
         // form data (instead of resetting it).
@@ -105,8 +114,12 @@ export default function CreateTaskScreen() {
     return (
       <AuthRequired
         icon="plus-circle-outline"
-        title="登录后可以发布任务"
-        description="登录或注册后，您可以发布跑腿、遛狗、取送物品等本地任务。"
+        title={kind === 'marketplace' ? '登录后可以发布闲置' : '登录后可以发布任务'}
+        description={
+          kind === 'marketplace'
+            ? '登录或注册后，您可以发布想出售的闲置物品。'
+            : '登录或注册后，您可以发布跑腿、遛狗、取送物品等本地任务。'
+        }
       />
     );
   }
@@ -125,10 +138,12 @@ export default function CreateTaskScreen() {
       >
         {/* Header */}
         <Text variant="headlineMedium" style={styles.title}>
-          发布任务
+          {kind === 'marketplace' ? '发布闲置' : '发布任务'}
         </Text>
         <Text variant="bodyMedium" style={styles.subtitle}>
-          填写以下信息发布新任务，所有带 * 的字段为必填项
+          {kind === 'marketplace'
+            ? '填写以下信息发布闲置物品，所有带 * 的字段为必填项'
+            : '填写以下信息发布新任务，所有带 * 的字段为必填项'}
         </Text>
 
         {/* Error Banner */}
@@ -148,7 +163,7 @@ export default function CreateTaskScreen() {
         )}
 
         {/* Task Form */}
-        <TaskForm onSubmit={handleSubmit} isLoading={isLoading} />
+        <TaskForm kind={kind} onSubmit={handleSubmit} isLoading={isLoading} />
       </ScrollView>
 
       {/* Success Snackbar (Requirement 4.3) */}
@@ -157,9 +172,9 @@ export default function CreateTaskScreen() {
         onDismiss={() => setSuccessVisible(false)}
         duration={1500}
         style={styles.snackbar}
-        accessibilityLabel="任务发布成功提示"
+        accessibilityLabel={kind === 'marketplace' ? '闲置发布成功提示' : '任务发布成功提示'}
       >
-        🎉 任务发布成功！
+        {kind === 'marketplace' ? '🎉 闲置发布成功！' : '🎉 任务发布成功！'}
       </Snackbar>
     </KeyboardAvoidingView>
   );

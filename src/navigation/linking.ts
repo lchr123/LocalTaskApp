@@ -14,6 +14,12 @@
  * - TaskDetail exists in both the Home and Tasks stacks. The Home stack maps it
  *   to the canonical, shareable `task/:taskId`; the Tasks stack uses a distinct
  *   `my-tasks/task/:taskId` path to avoid ambiguous URL → state resolution.
+ * - The Home and Post tabs each start on a CategoryPicker screen (choose
+ *   周边任务/工作 vs 二手市场) before TaskList / CreateTask, which now require
+ *   a `kind` route param. `initialRouteName: 'CategoryPicker'` on both tabs
+ *   ensures a cold-loaded deep link into TaskDetail (or any deeper screen)
+ *   gets a CategoryPicker ancestor pushed under it for back navigation,
+ *   instead of crashing on a missing `kind` param.
  * - For cold-loading a deep URL on the web (paste / refresh), the web server
  *   must fall back to index.html for unknown paths (SPA history fallback).
  *   In-app navigation updates the URL without needing that fallback.
@@ -33,9 +39,12 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Main: {
         screens: {
           Home: {
-            initialRouteName: 'TaskList',
+            initialRouteName: 'CategoryPicker',
             screens: {
-              TaskList: '',
+              CategoryPicker: '',
+              // Browsing a specific domain (from the category picker). Not the
+              // canonical shareable link — that's TaskDetail below.
+              TaskList: 'browse/:kind',
               // Canonical, shareable task URL: /task/<taskId>
               TaskDetail: 'task/:taskId',
               IntentList: 'task/:taskId/intents',
@@ -55,7 +64,13 @@ export const linking: LinkingOptions<RootStackParamList> = {
               CreateReport: 'my-tasks/report',
             },
           },
-          Post: 'post',
+          Post: {
+            initialRouteName: 'CategoryPicker',
+            screens: {
+              CategoryPicker: 'post',
+              CreateTask: 'post/:kind',
+            },
+          },
           Chat: {
             initialRouteName: 'ChatList',
             screens: {

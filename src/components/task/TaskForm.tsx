@@ -25,9 +25,13 @@ import {
 } from 'react-native-paper';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createTaskFormSchema, CreateTaskFormData } from '../../utils/validation';
-import { TASK_TYPE_LABELS } from '../../utils/constants';
-import { TaskType } from '../../types/task';
+import {
+  createTaskFormSchema,
+  createMarketplaceFormSchema,
+  CreateTaskFormData,
+} from '../../utils/validation';
+import { TASK_TYPE_LABELS, ITEM_CATEGORY_LABELS } from '../../utils/constants';
+import { TaskKind } from '../../types/task';
 import LocationPicker, { LocationValue } from './LocationPicker';
 import TaskImageUploader from './TaskImageUploader';
 import TaskTagSelector from './TaskTagSelector';
@@ -41,6 +45,11 @@ if (Platform.OS !== 'web') {
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface TaskFormProps {
+  /**
+   * Which domain this form is posting to. Drives the type dropdown options,
+   * which optional fields are shown, and several field labels/wording.
+   */
+  kind: TaskKind;
   /** Called when form is submitted with valid data */
   onSubmit: (data: CreateTaskFormData) => Promise<void>;
   /** Whether the form is in a loading/submitting state */
@@ -49,11 +58,15 @@ interface TaskFormProps {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const TASK_TYPE_OPTIONS: { value: TaskType; label: string }[] = [
+const TASK_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'full_time', label: TASK_TYPE_LABELS.full_time },
   { value: 'part_time', label: TASK_TYPE_LABELS.part_time },
   { value: 'one_time', label: TASK_TYPE_LABELS.one_time },
 ];
+
+const ITEM_CATEGORY_OPTIONS: { value: string; label: string }[] = Object.entries(
+  ITEM_CATEGORY_LABELS
+).map(([value, label]) => ({ value, label }));
 
 const REWARD_UNIT_OPTIONS: { value: 'once' | 'hour' | 'day' | 'month'; label: string }[] = [
   { value: 'once', label: '次' },
@@ -71,8 +84,9 @@ const DURATION_UNIT_OPTIONS: { value: 'once' | 'day' | 'week' | 'month'; label: 
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps) {
+export default function TaskForm({ kind, onSubmit, isLoading = false }: TaskFormProps) {
   const theme = useTheme();
+  const isMarketplace = kind === 'marketplace';
   const [typeMenuVisible, setTypeMenuVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerMode, setDatePickerMode] = useState<'date' | 'time'>('date');
@@ -89,7 +103,7 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
     watch,
     reset,
   } = useForm<CreateTaskFormData>({
-    resolver: zodResolver(createTaskFormSchema),
+    resolver: zodResolver(isMarketplace ? createMarketplaceFormSchema : createTaskFormSchema),
     defaultValues: {
       type: undefined,
       description: '',
@@ -115,13 +129,20 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
   const selectedType = watch('type');
   const selectedDeadline = watch('deadline');
 
+  const typeOptions = isMarketplace ? ITEM_CATEGORY_OPTIONS : TASK_TYPE_OPTIONS;
+  const typeLabels = isMarketplace ? ITEM_CATEGORY_LABELS : TASK_TYPE_LABELS;
+
   /**
-   * Get display label for the selected task type
+   * Get display label for the selected type (task employment length, or
+   * marketplace item category, depending on `kind`).
    */
-  const getTypeLabel = useCallback((type: string | undefined): string => {
-    if (!type) return '';
-    return TASK_TYPE_LABELS[type as TaskType] || '';
-  }, []);
+  const getTypeLabel = useCallback(
+    (type: string | undefined): string => {
+      if (!type) return '';
+      return typeLabels[type] || '';
+    },
+    [typeLabels]
+  );
 
   /**
    * Format a date string for display
@@ -204,25 +225,25 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                 <Pressable
                   onPress={() => setTypeMenuVisible(true)}
                   disabled={isLoading}
-                  accessibilityLabel="任务类型选择"
-                  accessibilityHint="点击选择任务类型"
+                  accessibilityLabel={isMarketplace ? '商品分类选择' : '任务类型选择'}
+                  accessibilityHint={isMarketplace ? '点击选择商品分类' : '点击选择任务类型'}
                   accessibilityRole="button"
                 >
                   <TextInput
-                    label="任务类型 *"
+                    label={isMarketplace ? '商品分类 *' : '任务类型 *'}
                     value={getTypeLabel(value)}
                     mode="outlined"
                     editable={false}
                     error={!!errors.type}
                     right={<TextInput.Icon icon="chevron-down" onPress={() => setTypeMenuVisible(true)} />}
                     pointerEvents="none"
-                    accessibilityLabel="任务类型"
+                    accessibilityLabel={isMarketplace ? '商品分类' : '任务类型'}
                   />
                 </Pressable>
               }
               anchorPosition="bottom"
             >
-              {TASK_TYPE_OPTIONS.map((option) => (
+              {typeOptions.map((option) => (
                 <Menu.Item
                   key={option.value}
                   onPress={() => {
@@ -254,8 +275,12 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
         render={({ field: { onChange, onBlur, value } }) => (
           <View style={styles.fieldContainer}>
             <TextInput
-              label="任务描述 *"
-              placeholder="请详细描述您的任务需求（10-500字符）"
+              label={isMarketplace ? '商品描述 *' : '任务描述 *'}
+              placeholder={
+                isMarketplace
+                  ? '请详细描述商品的新旧程度、规格等信息（10-500字符）'
+                  : '请详细描述您的任务需求（10-500字符）'
+              }
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -265,8 +290,8 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
               error={!!errors.description}
               disabled={isLoading}
               maxLength={500}
-              accessibilityLabel="任务描述输入框"
-              accessibilityHint="请输入10到500字符的任务描述"
+              accessibilityLabel={isMarketplace ? '商品描述输入框' : '任务描述输入框'}
+              accessibilityHint="请输入10到500字符的描述"
             />
             <View style={styles.fieldFooter}>
               {errors.description ? (
@@ -439,15 +464,15 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
         )}
       />
 
-      {/* Reward + Unit on one row: [金额] / [单位] */}
+      {/* Reward: marketplace shows a plain price (no unit); task shows [金额] / [单位] */}
       <View style={styles.rewardRow}>
         <Controller
           control={control}
           name="reward"
           render={({ field: { onChange, onBlur, value } }) => (
-            <View style={[styles.fieldContainer, styles.rewardAmountField]}>
+            <View style={[styles.fieldContainer, isMarketplace ? styles.priceField : styles.rewardAmountField]}>
               <TextInput
-                label="报酬金额 *"
+                label={isMarketplace ? '价格 *' : '报酬金额 *'}
                 placeholder="0 - 100000000"
                 value={value !== undefined && value !== null ? String(value) : ''}
                 onChangeText={(text) => {
@@ -467,11 +492,11 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
                 disabled={isLoading}
                 left={<TextInput.Icon icon="currency-jpy" />}
                 right={<TextInput.Affix text="円" />}
-                accessibilityLabel="报酬金额输入框"
-                accessibilityHint="请输入报酬金额，整数，范围0到100000000円"
+                accessibilityLabel={isMarketplace ? '价格输入框' : '报酬金额输入框'}
+                accessibilityHint={`请输入${isMarketplace ? '价格' : '报酬金额'}，整数，范围0到100000000円`}
               />
               {errors.reward && (
-                <HelperText type="error" visible accessibilityLabel="报酬金额错误提示">
+                <HelperText type="error" visible accessibilityLabel="金额错误提示">
                   {errors.reward.message}
                 </HelperText>
               )}
@@ -479,69 +504,97 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
           )}
         />
 
-        <Text style={styles.slash}>/</Text>
-
-        <Controller
-          control={control}
-          name="rewardUnit"
-          render={({ field: { onChange, value } }) => (
-            <View style={[styles.fieldContainer, styles.rewardUnitField]}>
-              <Menu
-                visible={rewardUnitMenu}
-                onDismiss={() => setRewardUnitMenu(false)}
-                anchor={
-                  <Pressable
-                    onPress={() => setRewardUnitMenu(true)}
-                    disabled={isLoading}
-                    accessibilityLabel="报酬单位选择"
-                    accessibilityRole="button"
+        {!isMarketplace && (
+          <>
+            <Text style={styles.slash}>/</Text>
+            <Controller
+              control={control}
+              name="rewardUnit"
+              render={({ field: { onChange, value } }) => (
+                <View style={[styles.fieldContainer, styles.rewardUnitField]}>
+                  <Menu
+                    visible={rewardUnitMenu}
+                    onDismiss={() => setRewardUnitMenu(false)}
+                    anchor={
+                      <Pressable
+                        onPress={() => setRewardUnitMenu(true)}
+                        disabled={isLoading}
+                        accessibilityLabel="报酬单位选择"
+                        accessibilityRole="button"
+                      >
+                        <TextInput
+                          label="单位"
+                          value={REWARD_UNIT_OPTIONS.find((o) => o.value === value)?.label || '次'}
+                          mode="outlined"
+                          editable={false}
+                          right={<TextInput.Icon icon="chevron-down" onPress={() => setRewardUnitMenu(true)} />}
+                          pointerEvents="none"
+                          accessibilityLabel="报酬单位"
+                        />
+                      </Pressable>
+                    }
+                    anchorPosition="bottom"
                   >
-                    <TextInput
-                      label="单位"
-                      value={REWARD_UNIT_OPTIONS.find((o) => o.value === value)?.label || '次'}
-                      mode="outlined"
-                      editable={false}
-                      right={<TextInput.Icon icon="chevron-down" onPress={() => setRewardUnitMenu(true)} />}
-                      pointerEvents="none"
-                      accessibilityLabel="报酬单位"
-                    />
-                  </Pressable>
-                }
-                anchorPosition="bottom"
-              >
-                {REWARD_UNIT_OPTIONS.map((option) => (
-                  <Menu.Item
-                    key={option.value}
-                    onPress={() => {
-                      onChange(option.value);
-                      setRewardUnitMenu(false);
-                    }}
-                    title={option.label}
-                    accessibilityLabel={`选择${option.label}`}
-                  />
-                ))}
-              </Menu>
-            </View>
-          )}
-        />
+                    {REWARD_UNIT_OPTIONS.map((option) => (
+                      <Menu.Item
+                        key={option.value}
+                        onPress={() => {
+                          onChange(option.value);
+                          setRewardUnitMenu(false);
+                        }}
+                        title={option.label}
+                        accessibilityLabel={`选择${option.label}`}
+                      />
+                    ))}
+                  </Menu>
+                </View>
+              )}
+            />
+          </>
+        )}
       </View>
 
-      {/* Task Tags */}
+      {/* Images: required for marketplace listings, optional for task photos */}
       <Controller
         control={control}
-        name="tagIds"
+        name="images"
         render={({ field: { onChange, value } }) => (
           <View style={styles.fieldContainer}>
-            <TaskTagSelector
+            <TaskImageUploader
               value={(value as string[]) || []}
               onChange={onChange}
               disabled={isLoading}
+              max={9}
+              label={isMarketplace ? '商品图片 *（至少1张，最多9张）' : undefined}
             />
+            {isMarketplace && errors.images && (
+              <HelperText type="error" visible accessibilityLabel="商品图片错误提示">
+                {errors.images.message as string}
+              </HelperText>
+            )}
           </View>
         )}
       />
 
-      {/* More Options (collapsible) */}
+      {/* Task Tags: only relevant to the task domain (scene/requirement tags) */}
+      {!isMarketplace && (
+        <Controller
+          control={control}
+          name="tagIds"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.fieldContainer}>
+              <TaskTagSelector
+                value={(value as string[]) || []}
+                onChange={onChange}
+                disabled={isLoading}
+              />
+            </View>
+          )}
+        />
+      )}
+
+      {/* More Options (collapsible) — headcount/start time/duration only apply
+          to job-style tasks, not marketplace listings. */}
       <Button
         mode="text"
         icon={moreVisible ? 'chevron-up' : 'chevron-down'}
@@ -550,190 +603,182 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
         contentStyle={styles.moreToggleContent}
         accessibilityLabel={moreVisible ? '收起更多选项' : '展开更多选项'}
       >
-        {moreVisible ? '收起更多选项' : '更多选项（图片 / 人数 / 时间 / 联系方式）'}
+        {moreVisible
+          ? '收起更多选项'
+          : isMarketplace
+            ? '更多选项（联系方式）'
+            : '更多选项（人数 / 时间 / 联系方式）'}
       </Button>
 
       {moreVisible && (
         <View style={styles.moreSection}>
-          {/* Task Images */}
-          <Controller
-            control={control}
-            name="images"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.fieldContainer}>
-                <TaskImageUploader
-                  value={(value as string[]) || []}
-                  onChange={onChange}
-                  disabled={isLoading}
-                  max={9}
-                />
-              </View>
-            )}
-          />
-
-          {/* Headcount */}
-          <Controller
-            control={control}
-            name="headcount"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.fieldContainer}>
-                <TextInput
-                  label="招募人数（可选，默认1）"
-                  placeholder="1"
-                  value={value !== undefined && value !== null ? String(value) : ''}
-                  onChangeText={(text) => {
-                    if (text === '') {
-                      onChange(undefined);
-                      return;
-                    }
-                    if (/^\d+$/.test(text)) {
-                      const num = parseInt(text, 10);
-                      if (!isNaN(num)) onChange(num);
-                    }
-                  }}
-                  mode="outlined"
-                  keyboardType="number-pad"
-                  disabled={isLoading}
-                  left={<TextInput.Icon icon="account-group-outline" />}
-                  right={<TextInput.Affix text="人" />}
-                  error={!!errors.headcount}
-                  accessibilityLabel="招募人数输入框"
-                />
-                {errors.headcount && (
-                  <HelperText type="error" visible>
-                    {errors.headcount.message}
-                  </HelperText>
-                )}
-              </View>
-            )}
-          />
-
-          {/* Start Time (optional) */}
-          <Controller
-            control={control}
-            name="startTime"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.fieldContainer}>
-                <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
-                  ⏱ 预计开始时间（可选）
-                </Text>
-                {Platform.OS === 'web' ? (
-                  <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                    <input
-                      type="date"
-                      value={value ? String(value).slice(0, 10) : ''}
-                      onChange={(e: any) => {
-                        const timeStr = value ? String(value).slice(11, 16) : '12:00';
-                        onChange(e.target.value ? `${e.target.value}T${timeStr}` : '');
+          {!isMarketplace && (
+            <>
+              {/* Headcount */}
+              <Controller
+                control={control}
+                name="headcount"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.fieldContainer}>
+                    <TextInput
+                      label="招募人数（可选，默认1）"
+                      placeholder="1"
+                      value={value !== undefined && value !== null ? String(value) : ''}
+                      onChangeText={(text) => {
+                        if (text === '') {
+                          onChange(undefined);
+                          return;
+                        }
+                        if (/^\d+$/.test(text)) {
+                          const num = parseInt(text, 10);
+                          if (!isNaN(num)) onChange(num);
+                        }
                       }}
-                      min={new Date().toISOString().slice(0, 10)}
+                      mode="outlined"
+                      keyboardType="number-pad"
                       disabled={isLoading}
-                      style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
-                      aria-label="选择开始日期"
+                      left={<TextInput.Icon icon="account-group-outline" />}
+                      right={<TextInput.Affix text="人" />}
+                      error={!!errors.headcount}
+                      accessibilityLabel="招募人数输入框"
                     />
-                    <input
-                      type="time"
-                      value={value ? String(value).slice(11, 16) : ''}
-                      onChange={(e: any) => {
-                        const dateStr = value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
-                        onChange(`${dateStr}T${e.target.value}`);
-                      }}
-                      disabled={isLoading}
-                      style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
-                      aria-label="选择开始时间"
-                    />
+                    {errors.headcount && (
+                      <HelperText type="error" visible>
+                        {errors.headcount.message}
+                      </HelperText>
+                    )}
                   </View>
-                ) : (
-                  <TextInput
-                    label="开始时间（YYYY-MM-DD HH:mm）"
-                    value={value ? formatDeadlineDisplay(String(value)) : ''}
-                    mode="outlined"
-                    editable={false}
-                    left={<TextInput.Icon icon="clock-start" />}
-                    placeholder="可在网页端选择"
-                    accessibilityLabel="预计开始时间"
-                  />
                 )}
-              </View>
-            )}
-          />
+              />
 
-          {/* Duration: hours / unit */}
-          <View style={styles.durationRow}>
-            <Controller
-              control={control}
-              name="durationHours"
-              render={({ field: { onChange, value } }) => (
-                <View style={[styles.fieldContainer, styles.durationHoursField]}>
-                  <TextInput
-                    label="预计时长（可选）"
-                    placeholder="如 2.5"
-                    value={value !== undefined && value !== null ? String(value) : ''}
-                    onChangeText={(text) => {
-                      if (text === '') {
-                        onChange(undefined);
-                        return;
-                      }
-                      if (/^\d*\.?\d{0,1}$/.test(text)) {
-                        const num = parseFloat(text);
-                        if (!isNaN(num)) onChange(num);
-                      }
-                    }}
-                    mode="outlined"
-                    keyboardType="decimal-pad"
-                    disabled={isLoading}
-                    right={<TextInput.Affix text="小时" />}
-                    accessibilityLabel="预计时长小时数"
-                  />
-                </View>
-              )}
-            />
-            <Text style={styles.slash}>/</Text>
-            <Controller
-              control={control}
-              name="durationUnit"
-              render={({ field: { onChange, value } }) => (
-                <View style={[styles.fieldContainer, styles.durationUnitField]}>
-                  <Menu
-                    visible={durationUnitMenu}
-                    onDismiss={() => setDurationUnitMenu(false)}
-                    anchor={
-                      <Pressable
-                        onPress={() => setDurationUnitMenu(true)}
-                        disabled={isLoading}
-                        accessibilityLabel="时长单位选择"
-                        accessibilityRole="button"
-                      >
-                        <TextInput
-                          label="单位"
-                          value={DURATION_UNIT_OPTIONS.find((o) => o.value === value)?.label || ''}
-                          mode="outlined"
-                          editable={false}
-                          right={<TextInput.Icon icon="chevron-down" onPress={() => setDurationUnitMenu(true)} />}
-                          pointerEvents="none"
-                          accessibilityLabel="时长单位"
+              {/* Start Time (optional) */}
+              <Controller
+                control={control}
+                name="startTime"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.fieldContainer}>
+                    <Text variant="bodySmall" style={{ marginBottom: 8, color: theme.colors.onSurfaceVariant }}>
+                      ⏱ 预计开始时间（可选）
+                    </Text>
+                    {Platform.OS === 'web' ? (
+                      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="date"
+                          value={value ? String(value).slice(0, 10) : ''}
+                          onChange={(e: any) => {
+                            const timeStr = value ? String(value).slice(11, 16) : '12:00';
+                            onChange(e.target.value ? `${e.target.value}T${timeStr}` : '');
+                          }}
+                          min={new Date().toISOString().slice(0, 10)}
+                          disabled={isLoading}
+                          style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
+                          aria-label="选择开始日期"
                         />
-                      </Pressable>
-                    }
-                    anchorPosition="bottom"
-                  >
-                    {DURATION_UNIT_OPTIONS.map((option) => (
-                      <Menu.Item
-                        key={option.value}
-                        onPress={() => {
-                          onChange(option.value);
-                          setDurationUnitMenu(false);
-                        }}
-                        title={option.label}
+                        <input
+                          type="time"
+                          value={value ? String(value).slice(11, 16) : ''}
+                          onChange={(e: any) => {
+                            const dateStr = value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+                            onChange(`${dateStr}T${e.target.value}`);
+                          }}
+                          disabled={isLoading}
+                          style={{ flex: 1, padding: '10px 12px', borderRadius: 6, border: '1px solid #E0E0E0', fontSize: 14, backgroundColor: '#fff' }}
+                          aria-label="选择开始时间"
+                        />
+                      </View>
+                    ) : (
+                      <TextInput
+                        label="开始时间（YYYY-MM-DD HH:mm）"
+                        value={value ? formatDeadlineDisplay(String(value)) : ''}
+                        mode="outlined"
+                        editable={false}
+                        left={<TextInput.Icon icon="clock-start" />}
+                        placeholder="可在网页端选择"
+                        accessibilityLabel="预计开始时间"
                       />
-                    ))}
-                  </Menu>
-                </View>
-              )}
-            />
-          </View>
+                    )}
+                  </View>
+                )}
+              />
 
-          {/* Contact Method (free text) */}
+              {/* Duration: hours / unit */}
+              <View style={styles.durationRow}>
+                <Controller
+                  control={control}
+                  name="durationHours"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={[styles.fieldContainer, styles.durationHoursField]}>
+                      <TextInput
+                        label="预计时长（可选）"
+                        placeholder="如 2.5"
+                        value={value !== undefined && value !== null ? String(value) : ''}
+                        onChangeText={(text) => {
+                          if (text === '') {
+                            onChange(undefined);
+                            return;
+                          }
+                          if (/^\d*\.?\d{0,1}$/.test(text)) {
+                            const num = parseFloat(text);
+                            if (!isNaN(num)) onChange(num);
+                          }
+                        }}
+                        mode="outlined"
+                        keyboardType="decimal-pad"
+                        disabled={isLoading}
+                        right={<TextInput.Affix text="小时" />}
+                        accessibilityLabel="预计时长小时数"
+                      />
+                    </View>
+                  )}
+                />
+                <Text style={styles.slash}>/</Text>
+                <Controller
+                  control={control}
+                  name="durationUnit"
+                  render={({ field: { onChange, value } }) => (
+                    <View style={[styles.fieldContainer, styles.durationUnitField]}>
+                      <Menu
+                        visible={durationUnitMenu}
+                        onDismiss={() => setDurationUnitMenu(false)}
+                        anchor={
+                          <Pressable
+                            onPress={() => setDurationUnitMenu(true)}
+                            disabled={isLoading}
+                            accessibilityLabel="时长单位选择"
+                            accessibilityRole="button"
+                          >
+                            <TextInput
+                              label="单位"
+                              value={DURATION_UNIT_OPTIONS.find((o) => o.value === value)?.label || ''}
+                              mode="outlined"
+                              editable={false}
+                              right={<TextInput.Icon icon="chevron-down" onPress={() => setDurationUnitMenu(true)} />}
+                              pointerEvents="none"
+                              accessibilityLabel="时长单位"
+                            />
+                          </Pressable>
+                        }
+                        anchorPosition="bottom"
+                      >
+                        {DURATION_UNIT_OPTIONS.map((option) => (
+                          <Menu.Item
+                            key={option.value}
+                            onPress={() => {
+                              onChange(option.value);
+                              setDurationUnitMenu(false);
+                            }}
+                            title={option.label}
+                          />
+                        ))}
+                      </Menu>
+                    </View>
+                  )}
+                />
+              </View>
+            </>
+          )}
+
+          {/* Contact Method (free text) — kept for both domains */}
           <Controller
             control={control}
             name="contactMethod"
@@ -771,10 +816,10 @@ export default function TaskForm({ onSubmit, isLoading = false }: TaskFormProps)
         disabled={isLoading}
         style={styles.submitButton}
         contentStyle={styles.submitButtonContent}
-        accessibilityLabel="发布任务按钮"
-        accessibilityHint="提交任务发布表单"
+        accessibilityLabel={isMarketplace ? '发布闲置按钮' : '发布任务按钮'}
+        accessibilityHint={isMarketplace ? '提交闲置发布表单' : '提交任务发布表单'}
       >
-        发布任务
+        {isMarketplace ? '发布闲置' : '发布任务'}
       </Button>
     </View>
   );
@@ -832,6 +877,9 @@ const styles = StyleSheet.create({
   },
   rewardAmountField: {
     flex: 2,
+  },
+  priceField: {
+    flex: 1,
   },
   rewardUnitField: {
     flex: 1,

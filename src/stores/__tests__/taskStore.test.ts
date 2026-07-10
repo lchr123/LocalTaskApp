@@ -144,12 +144,15 @@ describe('TaskStore', () => {
       await useTaskStore.getState().fetchTasks();
 
       expect(mockTaskService.fetchTasks).toHaveBeenCalledWith({
+        kind: 'task',
         lat: 35.6762,
         lng: 139.6503,
         radius: 5,
         type: 'delivery',
         minReward: 100,
         maxReward: 500,
+        sort: undefined,
+        tags: undefined,
         page: 1,
         pageSize: 20,
       });

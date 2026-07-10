@@ -21,14 +21,13 @@ import React, { useEffect } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import CreateTaskScreen from '../screens/task/CreateTaskScreen';
 import HomeStackNavigator from './HomeStackNavigator';
 import TaskStackNavigator from './TaskStackNavigator';
+import PostStackNavigator from './PostStackNavigator';
 import ChatStackNavigator from './ChatStackNavigator';
 import ProfileStackNavigator from './ProfileStackNavigator';
 import { useAuthStore } from '../stores/authStore';
 import { useBadgeStore } from '../stores/badgeStore';
-import { withSafeAreaTop } from '../components/common';
 
 // ─── Navigation Types ────────────────────────────────────────────────────────
 
@@ -43,10 +42,6 @@ export type MainTabParamList = {
 // ─── Tab Navigator ───────────────────────────────────────────────────────────
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
-
-// The Post tab has no stack header (headerShown is false at the tab level),
-// so wrap it to keep its content below the Android status bar.
-const PostScreen = withSafeAreaTop(CreateTaskScreen);
 
 // ─── Tab Icon Mapping ────────────────────────────────────────────────────────
 
@@ -124,7 +119,7 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="Post"
-        component={PostScreen}
+        component={PostStackNavigator}
         options={{
           tabBarLabel: '发布',
           tabBarAccessibilityLabel: '发布任务',

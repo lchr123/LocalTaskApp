@@ -23,10 +23,10 @@ import {
   Platform,
 } from 'react-native';
 import { Text, Icon, Button } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTaskStore } from '../../stores/taskStore';
-import { Task, TaskType } from '../../types/task';
+import { Task } from '../../types/task';
 import { TaskCard } from '../../components/task/TaskCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ErrorRetry } from '../../components/common/ErrorRetry';
@@ -38,13 +38,20 @@ import CityPickerModal from '../../components/task/CityPickerModal';
 import { JpPrefecture } from '../../utils/jpCities';
 
 type TaskListNavigationProp = NativeStackNavigationProp<HomeStackParamList, 'TaskList'>;
+type TaskListRouteProp = RouteProp<HomeStackParamList, 'TaskList'>;
 
 /**
  * TaskListScreen renders the main task browsing interface.
  * Uses FlatList for virtualized rendering with pagination (20 items per page).
+ *
+ * `route.params.kind` selects the domain (task / marketplace) chosen on the
+ * CategoryPicker screen; it is pushed into taskStore so fetchTasks/loadMore/
+ * refresh all filter by it.
  */
 export default function TaskListScreen() {
   const navigation = useNavigation<TaskListNavigationProp>();
+  const route = useRoute<TaskListRouteProp>();
+  const { kind } = route.params;
   const isInitializedRef = useRef(false);
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
   // Whether the very first task load has completed. After that, filter-driven
@@ -61,11 +68,14 @@ export default function TaskListScreen() {
     userLocation,
     locationDenied,
     locationBlocked,
+    locationServicesOff,
+    isLocating,
     manualCity,
     filter,
     initLocation,
     setManualLocation,
     openLocationSettings,
+    setKind,
     fetchTasks,
     loadMore,
     refresh,
@@ -80,6 +90,7 @@ export default function TaskListScreen() {
   useEffect(() => {
     if (!isInitializedRef.current) {
       isInitializedRef.current = true;
+      setKind(kind);
       initializeScreen();
     }
   }, []);
@@ -88,6 +99,26 @@ export default function TaskListScreen() {
     await initLocation();
     // fetchTasks will be triggered after location is set
   };
+
+  /**
+   * Sync the store's active domain whenever route.params.kind changes.
+   *
+   * React Navigation reuses this screen's instance when navigating back to an
+   * existing 'TaskList' route (e.g. CategoryPicker → task → back →
+   * marketplace), merging the new params instead of remounting. Without this,
+   * a second visit with a different kind would keep showing the first kind's
+   * data. Skipped on the very first render (handled by the mount effect above
+   * to avoid double-fetching).
+   */
+  const prevKindRef = useRef(kind);
+  useEffect(() => {
+    if (prevKindRef.current === kind) return;
+    prevKindRef.current = kind;
+    setKind(kind);
+    if (userLocation) {
+      fetchTasks();
+    }
+  }, [kind]);
 
   /**
    * Fetch tasks when location becomes available.
@@ -253,6 +284,22 @@ export default function TaskListScreen() {
                   去系统设置开启
                 </Button>
               </>
+            ) : locationServicesOff ? (
+              <>
+                <Text style={styles.permissionDescription}>
+                  设备的定位服务（系统 GPS 开关）未开启。请在系统设置中打开定位后重试。
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleRetryLocation}
+                  loading={isLocating}
+                  disabled={isLocating}
+                  style={styles.permissionButton}
+                  accessibilityLabel="重试获取定位"
+                >
+                  已开启，重试
+                </Button>
+              </>
             ) : (
               <>
                 <Text style={styles.permissionDescription}>
@@ -261,6 +308,8 @@ export default function TaskListScreen() {
                 <Button
                   mode="contained"
                   onPress={handleRetryLocation}
+                  loading={isLocating}
+                  disabled={isLocating}
                   style={styles.permissionButton}
                   accessibilityLabel="重新获取定位权限"
                 >

@@ -2,12 +2,25 @@ import { TaskType } from '../types/task';
 import { ReportType } from '../types/report';
 
 /**
- * Task type labels (Chinese)
+ * Task type labels (Chinese). Used when kind === 'task'.
  */
-export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+export const TASK_TYPE_LABELS: Record<string, string> = {
   full_time: '全职',
   part_time: '兼职',
   one_time: '单次任务',
+};
+
+/**
+ * Marketplace item category labels (Chinese). Used when kind === 'marketplace'.
+ * Stored in the same `type` column as TASK_TYPE_LABELS, just a different
+ * value set for that domain.
+ */
+export const ITEM_CATEGORY_LABELS: Record<string, string> = {
+  electronics: '电子产品',
+  furniture: '家具家电',
+  clothing: '服饰鞋包',
+  books: '图书文具',
+  other: '其他',
 };
 
 /**

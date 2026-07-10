@@ -15,7 +15,7 @@
  */
 
 import { create } from 'zustand';
-import { Task, Intent, TaskFilter, CreateTaskPayload } from '../types/task';
+import { Task, Intent, TaskFilter, CreateTaskPayload, TaskKind } from '../types/task';
 import { taskService } from '../services/taskService';
 import { locationService, UserLocation } from '../services/locationService';
 import { LOCATION, PAGINATION } from '../utils/constants';
@@ -53,11 +53,27 @@ interface TaskState {
    * must direct the user to the system Settings instead of re-requesting.
    */
   locationBlocked: boolean;
+  /**
+   * Whether device-level location services (system GPS toggle) are off while
+   * the app permission is granted — a position fix will never arrive until the
+   * user turns the system switch on.
+   */
+  locationServicesOff: boolean;
+  /** Whether a location lookup is currently in progress (for retry feedback). */
+  isLocating: boolean;
   /** Manually selected prefecture (when GPS is unavailable / overridden) */
   manualCity: JpPrefecture | null;
+  /**
+   * Which domain the list/detail screens are currently browsing:
+   * 'task' (周边任务/工作) or 'marketplace' (二手市场). Set once when entering
+   * TaskListScreen from the category picker.
+   */
+  kind: TaskKind;
 
   // Actions
 
+  /** Set the active domain (task/marketplace) for subsequent fetches */
+  setKind: (kind: TaskKind) => void;
   /** Fetch tasks based on current location and filters */
   fetchTasks: () => Promise<void>;
   /** Fetch a specific task's details */
@@ -112,7 +128,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   userLocation: null,
   locationDenied: false,
   locationBlocked: false,
+  locationServicesOff: false,
+  isLocating: false,
   manualCity: null,
+  kind: 'task',
+
+  /**
+   * Set the active domain. Does not refetch by itself — the caller (screen
+   * mount effect) is responsible for calling fetchTasks() afterwards, same
+   * pattern as the other filter setters.
+   */
+  setKind: (kind: TaskKind) => {
+    set({ kind });
+  },
 
   /**
    * Initialize user location.
@@ -121,6 +149,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
    * Requirement 5.6: Handle location permission denial.
    */
   initLocation: async () => {
+    set({ isLocating: true });
+
     const location = await locationService.getCurrentLocation();
 
     if (location) {
@@ -128,24 +158,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         userLocation: location,
         locationDenied: false,
         locationBlocked: false,
+        locationServicesOff: false,
         manualCity: null,
+        isLocating: false,
       });
       return;
     }
 
-    // No location: either permission was denied or the position was unavailable.
-    // Check whether the permission is permanently denied so the UI can route the
-    // user to system Settings instead of uselessly re-requesting (which the OS
-    // will silently auto-deny once canAskAgain is false).
+    // No location. Figure out why so the UI can show the right recovery action:
+    // - permission permanently denied (canAskAgain === false) → go to Settings
+    // - permission granted but device location services off → enable system GPS
+    // - otherwise → a plain retry
     let blocked = false;
+    let servicesOff = false;
     try {
       const status = await locationService.getPermissionStatus();
       blocked = !status.granted && !status.canAskAgain;
+      if (status.granted) {
+        const servicesOn = await locationService.hasServicesEnabled();
+        servicesOff = !servicesOn;
+      }
     } catch {
-      blocked = false;
+      // Keep defaults (plain retry) if we can't determine the reason.
     }
 
-    set({ userLocation: null, locationDenied: true, locationBlocked: blocked });
+    set({
+      userLocation: null,
+      locationDenied: true,
+      locationBlocked: blocked,
+      locationServicesOff: servicesOff,
+      isLocating: false,
+    });
   },
 
   /**
@@ -180,7 +223,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
    * Requirement 5.1: Display tasks within radius, sorted by distance.
    */
   fetchTasks: async () => {
-    const { userLocation, filter } = get();
+    const { userLocation, filter, kind } = get();
 
     if (!userLocation) {
       set({ error: '无法获取位置信息，请开启定位权限', tasks: [] });
@@ -191,6 +234,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       const response = await taskService.fetchTasks({
+        kind,
         lat: userLocation.latitude,
         lng: userLocation.longitude,
         radius: filter.radius ?? LOCATION.DEFAULT_RADIUS_KM,
@@ -222,7 +266,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
    * Requirement 5.1: Each page shows up to 20 tasks.
    */
   loadMore: async () => {
-    const { userLocation, filter, page, hasMore, isLoading } = get();
+    const { userLocation, filter, page, hasMore, isLoading, kind } = get();
 
     if (!userLocation || !hasMore || isLoading) {
       return;
@@ -233,6 +277,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     try {
       const nextPage = page + 1;
       const response = await taskService.fetchTasks({
+        kind,
         lat: userLocation.latitude,
         lng: userLocation.longitude,
         radius: filter.radius ?? LOCATION.DEFAULT_RADIUS_KM,
@@ -265,7 +310,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
    * Requirement 5.4: Pull-to-refresh reloads latest data within 5 seconds.
    */
   refresh: async () => {
-    const { userLocation, filter } = get();
+    const { userLocation, filter, kind } = get();
 
     if (!userLocation) {
       // Try to get location again
@@ -285,6 +330,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     try {
       const response = await taskService.fetchTasks({
+        kind,
         lat: currentLocation.latitude,
         lng: currentLocation.longitude,
         radius: filter.radius ?? LOCATION.DEFAULT_RADIUS_KM,

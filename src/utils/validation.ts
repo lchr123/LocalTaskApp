@@ -145,6 +145,7 @@ export type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 // ─── Task Form Schema ────────────────────────────────────────────────────────
 
 const taskTypes = ['full_time', 'part_time', 'one_time'] as const;
+const itemCategories = ['electronics', 'furniture', 'clothing', 'books', 'other'] as const;
 
 /**
  * Location object schema with address and coordinates.
@@ -167,8 +168,10 @@ const locationSchema = z.object({
     .refine((val) => val >= 122 && val <= 154, '请搜索确认地址后再提交'),
 });
 
-export const createTaskFormSchema = z.object({
-  type: z.enum(taskTypes, '请选择任务类型'),
+/**
+ * Fields shared by both domains (kind='task' and kind='marketplace').
+ */
+const sharedTaskFormFields = {
   description: z
     .string()
     .min(VALIDATION.TASK_DESCRIPTION_MIN, `描述至少需要${VALIDATION.TASK_DESCRIPTION_MIN}个字符`)
@@ -186,6 +189,13 @@ export const createTaskFormSchema = z.object({
     .int('报酬金额必须为整数')
     .min(VALIDATION.TASK_REWARD_MIN, `报酬金额最低为${VALIDATION.TASK_REWARD_MIN}円`)
     .max(VALIDATION.TASK_REWARD_MAX, `报酬金额最高为${VALIDATION.TASK_REWARD_MAX}円`),
+  contactMethod: z.string().max(100, '联系方式不能超过100字符').nullish(),
+};
+
+/** kind='task' (周边任务/工作) form schema — unchanged from the original shape. */
+export const createTaskFormSchema = z.object({
+  type: z.enum(taskTypes, '请选择任务类型'),
+  ...sharedTaskFormFields,
   rewardUnit: z.enum(['once', 'hour', 'day', 'month']).nullish(),
   images: z.array(z.string()).max(9, '最多上传9张图片').optional(),
   headcount: z.number().int().min(1).max(999).optional(),
@@ -193,13 +203,35 @@ export const createTaskFormSchema = z.object({
     .string()
     .refine((val) => !val || !isNaN(new Date(val).getTime()), '开始时间格式无效')
     .nullish(),
-  contactMethod: z.string().max(100, '联系方式不能超过100字符').nullish(),
   durationHours: z.number().positive('时长需大于0').max(999.9).nullish(),
   durationUnit: z.enum(['once', 'day', 'week', 'month']).nullish(),
   tagIds: z.array(z.string()).optional(),
 });
 
-export type CreateTaskFormData = z.infer<typeof createTaskFormSchema>;
+/**
+ * kind='marketplace' (二手市场) form schema.
+ * Differs from the task schema: `type` is an item category instead of an
+ * employment length, there is no reward unit (price is a one-time amount),
+ * images are required (at least 1), and there is no headcount / startTime /
+ * duration / tags — those job-posting concepts don't apply to a listing.
+ */
+export const createMarketplaceFormSchema = z.object({
+  type: z.enum(itemCategories, '请选择商品分类'),
+  ...sharedTaskFormFields,
+  images: z
+    .array(z.string())
+    .min(1, '请至少上传1张商品图片')
+    .max(9, '最多上传9张图片'),
+});
+
+/**
+ * Shared form data shape for both domains. `type` is loosened to `string`
+ * (rather than the task-only enum) so values from either schema type-check;
+ * each schema's own enum is the actual runtime validation.
+ */
+export type CreateTaskFormData = Omit<z.infer<typeof createTaskFormSchema>, 'type'> & {
+  type: string;
+};
 
 // ─── Intent Form Schema ──────────────────────────────────────────────────────
 

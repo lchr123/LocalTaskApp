@@ -15,7 +15,7 @@
  */
 
 import apiClient from './api';
-import { Task, Intent, CreateTaskPayload, TaskFilter } from '../types/task';
+import { Task, Intent, CreateTaskPayload, TaskFilter, TaskKind } from '../types/task';
 import { API_ENDPOINTS, PAGINATION, LOCATION } from '../utils/constants';
 
 /**
@@ -39,6 +39,7 @@ export interface IntentListResponse {
  * Parameters for fetching nearby tasks
  */
 export interface FetchTasksParams {
+  kind: TaskKind;
   lat: number;
   lng: number;
   radius?: number;
@@ -60,6 +61,7 @@ class TaskService {
    */
   async fetchTasks(params: FetchTasksParams): Promise<TaskListResponse> {
     const {
+      kind,
       lat,
       lng,
       radius = LOCATION.DEFAULT_RADIUS_KM,
@@ -71,6 +73,7 @@ class TaskService {
     } = params;
 
     const queryParams: Record<string, string | number> = {
+      kind,
       lat,
       lng,
       radius,

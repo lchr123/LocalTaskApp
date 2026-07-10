@@ -21,6 +21,8 @@ export interface TaskImageUploaderProps {
   disabled?: boolean;
   max?: number;
   maxFileSizeMB?: number;
+  /** Override the default "任务图片（可选，最多 N 张）" label, e.g. to mark required. */
+  label?: string;
 }
 
 export default function TaskImageUploader({
@@ -29,6 +31,7 @@ export default function TaskImageUploader({
   disabled = false,
   max = 9,
   maxFileSizeMB = 5,
+  label,
 }: TaskImageUploaderProps) {
   const theme = useTheme();
   const [uploadingCount, setUploadingCount] = useState(0);
@@ -100,7 +103,7 @@ export default function TaskImageUploader({
   return (
     <View style={styles.container}>
       <Text variant="labelLarge" style={styles.label}>
-        任务图片（可选，最多 {max} 张）
+        {label ?? `任务图片（可选，最多 ${max} 张）`}
       </Text>
 
       {(value.length > 0 || uploadingCount > 0) && (

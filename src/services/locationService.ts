@@ -45,6 +45,49 @@ function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
 
+/**
+ * Map an expo-location position object to our UserLocation shape.
+ */
+function toUserLocation(location: Location.LocationObject): UserLocation {
+  return {
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+    accuracy: location.coords.accuracy,
+  };
+}
+
+/**
+ * Resolve with the promise's value, or with `null` if it does not settle within
+ * `ms`. Ensures location lookups can never hang the UI (e.g., emulator without
+ * a GPS fix, or a device that never returns a position).
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        resolve(null);
+      }
+    }, ms);
+    promise
+      .then((value) => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(value);
+        }
+      })
+      .catch(() => {
+        if (!settled) {
+          settled = true;
+          clearTimeout(timer);
+          resolve(null);
+        }
+      });
+  });
+}
+
 class LocationService {
   /**
    * Request foreground location permission from the user.
@@ -112,8 +155,30 @@ class LocationService {
   }
 
   /**
+   * Whether the DEVICE-level location services (system GPS toggle) are on.
+   * A user can grant the app permission while the OS location switch is off;
+   * in that case a position fix will never arrive.
+   */
+  async hasServicesEnabled(): Promise<boolean> {
+    try {
+      return await Location.hasServicesEnabledAsync();
+    } catch {
+      // If we can't tell, assume enabled so we don't wrongly block the flow.
+      return true;
+    }
+  }
+
+  /**
    * Get the user's current location.
    * Returns null if permission is denied or location cannot be determined.
+   *
+   * Robustness:
+   * - Tries the cached last-known position first (instant when available).
+   * - Wraps the fresh fix in a hard timeout so the call can NEVER hang. Without
+   *   this, `getCurrentPositionAsync` waits indefinitely when there is no fix
+   *   (common on emulators with no location set), which made the retry button
+   *   appear unresponsive. Note: `timeInterval` is a watch option and does NOT
+   *   act as a timeout for `getCurrentPositionAsync`.
    *
    * Requirement 5.1: Obtain user's current position for nearby task queries.
    */
@@ -124,16 +189,23 @@ class LocationService {
         return null;
       }
 
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-        timeInterval: TIMEOUTS.LOCATION_TIMEOUT,
-      });
+      // Fast path: return a cached fix immediately if one exists.
+      try {
+        const last = await Location.getLastKnownPositionAsync();
+        if (last) {
+          return toUserLocation(last);
+        }
+      } catch {
+        // Best-effort only; fall through to a fresh fix.
+      }
 
-      return {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy,
-      };
+      // Fresh fix, guarded by a hard timeout so we never hang.
+      const location = await withTimeout(
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        TIMEOUTS.LOCATION_TIMEOUT
+      );
+
+      return location ? toUserLocation(location) : null;
     } catch {
       return null;
     }
